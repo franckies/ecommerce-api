@@ -1,12 +1,12 @@
-#eCommerce API 
-####Advanced programming project of the Master in AI & Cloud - PoliTO Reply
+# eCommerce API 
+#### Advanced programming project of the Master in AI & Cloud - PoliTO Reply
 
 eCommerce APi is an headless (just API) eCommerce web application powered by Spring boot, with a microservice architecture.
 
-##Services
-###Description
+## Services
+### Description
 The application is composed by the following services.
-####Catalog Service
+#### Catalog Service
 Customers interact with this service only. They can list products, get
 their features and availability (availability comes from warehouses)
 To each user we associate a wallet they can use to purchase products
@@ -37,12 +37,12 @@ This service APIs can be used only by other internal services (all services are
 considered trusted and they can perform any operation)
 Customers and Admins can query and modify order status only through the the
 CatalogService accordingly to their permissions.
-####Wallet Service
+#### Wallet Service
 Wallets handle customer money, they have simple API: you can
 query the total, the transaction list, and add a transaction.
 Negative transaction are issued during purchase, positive ones
 (recharges) are issued by admins only.
-####Warehouse Service
+#### Warehouse Service
 It handles the list of products stored in any warehouse.
 Products can be in more than one warehouse, with different
 quantities
@@ -55,13 +55,13 @@ For simplicity you can use a single WarehouseService handling
 more than one warehouse, but in real life there can a separate
 instance for each warehouse.
 
-###Communication
+### Communication
 The following image reports how the communication among the microservices take places and which data are exchanged.
 For each microservice, there are reported the classes that are defined in the microservice itself (<ins>underlined</ins>), and the classes that are needed from other services, defined as DTOs. 
 
 ![alt text](./images/serviceSchema.png "Workflow")
 
-###Endpoints
+### Endpoints
 #### Catalog service endpoints
 |EP|Payload| Description|
 |---|---|---|
@@ -96,9 +96,9 @@ For each microservice, there are reported the classes that are defined in the mi
 |`GET /order/orders/{userID}`| response: PlacedOrderListDTO |Catalog requests the orders of `userID`|
 |`DELETE /order/orders/{orderID}`| response: OrderDTO |Catalog requests to cancel the order `orderID` (updating its STATUS, if it has not been shipped yet)|
 
-###DTOs definition
+### DTOs definition
 ```
-WalletDTO(??time??, user, total, List<Transaction>)
+WalletDTO(UserDTO, total, List<Transaction>, ??time??)
 ProductDTO(name, description, category, picture, currentPrice)
 ProductAdminDTO(ProductDTO, WarehouseDTO, alarm level, warehouseQuantity)
 ProductListDTO(Dict<ProductDTO, totalQuantity>)
@@ -107,10 +107,11 @@ ProductListAdminDTO(List<ProductAdminDTO>)
 UserDTO(userID, name, surname, email, role)
 PurchaseDTO(ProductDTO, quantity, sellingPrice)
 TransactionDTO(UserDTO, amount, time, causale, List<PurchaseDTO>)
-RechargeDTO(UserDTO, amount, time, causale,??UserDTO(who charges))
+RechargeDTO(UserDTO, amount, time, causale,??UserDTO(who charges)??)
+WarehouseDTO(name, address)
 
 OrderDTO(OrderID, Dict<ProductDTO, quantity>)
-DeliveryDTO(warehouse, Dict<ProductDTO,quantity>)
+DeliveryDTO(WarehouseDTO, Dict<ProductDTO,quantity>)
 DeliveryListDTO(OrderDTO, List<DeliveryDTO>)
 
 PlacedOrderDTO(UserDTO, List<PurchaseDTO>, deliveryAddress)
