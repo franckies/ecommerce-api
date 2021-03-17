@@ -93,7 +93,7 @@ For each microservice, there are reported the classes that are defined in the mi
 |EP|Payload| Description|
 |---|---|---|
 |`POST /order/orders/`| request: PlacedOrderDTO |Catalog insert a new order|
-|`GET /order/orders/{userID}`| response: PlacedOrderListDTO |Catalog requests the orders of `userID`|
+|`GET /order/orders/user/{userID}`| response: PlacedOrderListDTO |Catalog requests the orders of `userID`|
 |`DELETE /order/orders/{orderID}`| response: OrderDTO |Catalog requests to cancel the order `orderID` (updating its STATUS, if it has not been shipped yet)|
 
 ### DTOs definition
