@@ -3,6 +3,7 @@ package it.polito.master.ap.group6.ecommerce.orderservice.models
 import it.polito.master.ap.group6.ecommerce.common.dtos.ProductDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.UserDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.OrderStatus
+import org.bson.types.ObjectId
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 
@@ -17,11 +18,12 @@ import org.springframework.data.mongodb.core.mapping.Document
  *
  */
 @Document("orders")
-class Order (
+class Order(
     val buyer: UserDTO? = null,
     val purchases: List<Purchase>? = null,
     var status: OrderStatus? = null,
-    val deliveryAddress: String? = null) {
+    val deliveryAddress: String? = null
+) {
     @Id
     var id: String? = null
     val price: Float?

@@ -6,6 +6,7 @@ import it.polito.master.ap.group6.ecommerce.common.misc.OrderStatus
 import it.polito.master.ap.group6.ecommerce.orderservice.models.dtos.toDto
 import it.polito.master.ap.group6.ecommerce.orderservice.services.OrderService
 import org.bson.types.ObjectId
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -19,8 +20,9 @@ import javax.annotation.security.RolesAllowed
  */
 @RestController
 @RequestMapping("/order")
-class OrderController(val orderService: OrderService) {
-
+class OrderController(
+    @Autowired private val orderService: OrderService
+) {
     /**
      * POST an order into the database.
      * @return DTO corresponding to the saved order.
@@ -38,12 +40,30 @@ class OrderController(val orderService: OrderService) {
      * @throws HttpStatus.NOT_FOUND if the order doesn't exist.
      */
     @GetMapping("/orders/{orderID}")
-    fun getOrder(@PathVariable orderID: ObjectId): OrderDTO {
-        val order = orderService.getOrder(orderID)
-        if (order.isPresent)
+    fun getOrder(@PathVariable("orderID") orderID: String): OrderDTO {
+        //TODO: ObjectId generates exception if id is not valid hex.
+        val order = orderService.getOrder(ObjectId(orderID))
+        if (order.isPresent) {
             return order.get().toDto()
-        else
+        } else {
             throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        }
+    }
+
+    /**
+     * GET the status of the order having orderID as identifier.
+     * @return the order status.
+     * @throws HttpStatus.NOT_FOUND if the order doesn't exist.
+     */
+    @GetMapping("/orders/{orderID}/status")
+    fun getOrderStatus(@PathVariable("orderID") orderID: String): OrderStatus? {
+        //TODO: ObjectId generates exception if id is not valid hex.
+        val order = orderService.getOrder(ObjectId(orderID))
+        if (order.isPresent) {
+            return order.get().status
+        } else {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        }
     }
 
     /**
@@ -51,13 +71,14 @@ class OrderController(val orderService: OrderService) {
      * @return A list of the DTOs corresponding to the orders of the user.
      * @throws HttpStatus.NOT_FOUND if the user doesn't exists.
      */
-    @GetMapping("/orders/user/{userID}")
-    fun getOrdersByUser(@PathVariable userID: String): List<OrderDTO> {
+    @GetMapping("/{userID}/orders/")
+    fun getOrdersByUser(@PathVariable("userID") userID: String): List<OrderDTO> {
         val orders = orderService.getOrdersByUser(userID)
-        if (orders.all { it.isPresent })
+        if (orders.all { it.isPresent }) {
             return orders.map { it.get().toDto() }
-        else
+        } else {
             throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        }
     }
 
     /**
@@ -67,8 +88,9 @@ class OrderController(val orderService: OrderService) {
      * @throws HttpStatus.NOT_FOUND if the order doesn't exist.
      */
     @DeleteMapping("orders/{orderID}")
-    fun cancelOrder(@PathVariable orderID: ObjectId): OrderDTO? {
-        val canceledOrder = orderService.cancelOrder(orderID)
+    fun cancelOrder(@PathVariable("orderID") orderID: String): OrderDTO? {
+        //TODO: ObjectId generates exception if id is not valid hex.
+        val canceledOrder = orderService.cancelOrder(ObjectId(orderID))
         if (canceledOrder.isPresent) {
             if (canceledOrder.get().status == OrderStatus.CANCELLED) {
                 return canceledOrder.get().toDto()

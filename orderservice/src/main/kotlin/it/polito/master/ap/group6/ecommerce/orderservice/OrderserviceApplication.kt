@@ -22,28 +22,32 @@ class OrderserviceApplication(
         //clear table
         orderRepo.deleteAll()
         val userDTOList = mutableListOf<UserDTO>().apply {
-            add(UserDTO("saddas", "Francesco", "Semeraro", "Milano", "User"))
-            add(UserDTO("sar32", "Nicolò", "Chiapello", "Torino", "User"))
+            add(UserDTO("1239820421", "Francesco", "Semeraro", "Milano", "User"))
+            add(UserDTO("2142109842", "Nicolò", "Chiapello", "Torino", "User"))
         }
         val productList = mutableListOf<ProductDTO>().apply {
-            add(ProductDTO("prod1", "desc1", "a", "asc", 20f))
-            add(ProductDTO("prod2", "desc2", "b", "asc23", 50f))
-            add(ProductDTO("prod3", "desc3", "c", "asc23", 10f))
+            add(ProductDTO("Umbrella", "Repairs from rain", "Misc", "umbrella_pic", 20f))
+            add(ProductDTO("Shoes", "Black shoes", "Dressing", "shoes_pic", 50f))
+            add(ProductDTO("Tablet", "iPad 2018", "Eletronics", "tablet_pic", 300f))
         }
-        val purchaseList = mutableListOf<Purchase>().apply {
-            add(Purchase(productList[0], 5, 16f))
-            add(Purchase(productList[2], 1, 47f))
+        val purchaseList1 = mutableListOf<Purchase>().apply {
+            add(Purchase(productList[0], 2, 15f))
+            add(Purchase(productList[2], 1, 320f))
+        }
+        val purchaseList2 = mutableListOf<Purchase>().apply {
+            add(Purchase(productList[0], 1, 21f))
+            add(Purchase(productList[1], 1, 47f))
         }
 
         //populate product table
         val orderList = mutableListOf<Order>().apply {
-            add(Order(userDTOList[0], purchaseList, OrderStatus.PAID, "Milan"))
-            add(Order(userDTOList[1], purchaseList, OrderStatus.CANCELLED, "Turin"))
+            add(Order(userDTOList[0], purchaseList1, OrderStatus.PAID, "Milan"))
+            add(Order(userDTOList[1], purchaseList2, OrderStatus.CANCELLED, "Turin"))
         }
         orderRepo.saveAll(orderList)
 
         //test POST
-        val o = PlacedOrderDTO(userDTOList[0], purchaseList.map { it.toDto() }, "Milan")
+        val o = PlacedOrderDTO(userDTOList[1], purchaseList1.map { it.toDto() }, "Turin")
         val jsonString = Gson().toJson(o)
         println(jsonString)
 
