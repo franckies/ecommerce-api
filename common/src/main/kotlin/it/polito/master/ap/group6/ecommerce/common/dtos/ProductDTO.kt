@@ -5,9 +5,5 @@ data class ProductDTO(
     val description: String? = null,
     val category: String? = null,
     val picture: String? = null,
-    val currentPrice: Float? = null
-)
-
-data class ProductListDTO(
-    val products : Map<ProductDTO, Int>
+    val currentPrice: Double? = null
 )
