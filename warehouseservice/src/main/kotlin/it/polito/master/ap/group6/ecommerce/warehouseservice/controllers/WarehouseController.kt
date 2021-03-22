@@ -15,11 +15,6 @@ import org.springframework.web.bind.annotation.*
 @RestController
 class WarehouseController(val warehouseService: WarehouseService) {
 
-//    @PostMapping("/products")
-//    fun insertProduct(@RequestBody product: ProductAdminDTO) {
-//        productService.insertProduct(product)
-//    }
-
     @GetMapping("/warehouse/products/totals")
     fun getProductsTotals(): ProductListDTO? {
         return warehouseService.getProductsTotals()
@@ -31,14 +26,14 @@ class WarehouseController(val warehouseService: WarehouseService) {
     }
 
     @PostMapping("/warehouse/products")
-    fun insertNewProduct(@RequestBody productAdminDTO : ProductAdminDTO) {
-        warehouseService.insertNewProduct(productAdminDTO)
+    fun insertNewProduct(@RequestBody productAdminDTO : ProductAdminDTO) : ResponseEntity<ProductAdminDTO> {
+        return warehouseService.insertNewProduct(productAdminDTO)
     }
 
-//    @PostMapping("/warehouse/orders")
-//    fun performOrder(@RequestBody orderDTO: OrderDTO) {
-//        warehouseService.performOrder(orderDTO)
-//    }
+    @PostMapping("/warehouse/orders")
+    fun getDeliveries(@RequestBody orderDTO: OrderDTO) : DeliveryListDTO {
+        return warehouseService.getDeliveries(orderDTO)
+    }
 
 //    @GetMapping("/debug")
 //    fun getProduct(product : ProductDTO): Product? {

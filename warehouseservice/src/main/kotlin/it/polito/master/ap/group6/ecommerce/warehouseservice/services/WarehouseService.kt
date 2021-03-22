@@ -10,19 +10,16 @@ import org.springframework.stereotype.Service
 interface WarehouseService {
 //    fun getAll() : MutableList<Warehouse>
 
-    fun getProductsTotals() : ProductListDTO?
-    fun getProductsPerWarehouse() : ProductListAdminDTO?
-    fun insertNewProduct(productAdminDTO: ProductAdminDTO) : ResponseEntity<ProductAdminDTO>
-//    fun getProduct(product: ProductDTO) : Product?
-//    fun checkAvailability(orderDTO : OrderDTO) : Boolean
+    fun getProductsTotals(): ProductListDTO?
+    fun getProductsPerWarehouse(): ProductListAdminDTO?
+    fun insertNewProduct(productAdminDTO: ProductAdminDTO): ResponseEntity<ProductAdminDTO>
+    fun getProduct(product: ProductDTO): Product?
+    fun checkAvailability(orderDTO: OrderDTO): Boolean
+    fun getDeliveries(orderDTO: OrderDTO): DeliveryListDTO
 }
 
 @Service
 class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository) : WarehouseService {
-//
-////    override fun insertProduct(product: ProductAdminDTO): Product =
-////        warehouseRepository.save(product.toModel())
-//
 
     override fun getProductsTotals(): ProductListDTO? {
 
@@ -66,7 +63,14 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
         return productListAdminDTO
     }
 
-    override fun insertNewProduct(productAdminDTO: ProductAdminDTO) : ResponseEntity<ProductAdminDTO> {
+    override fun insertNewProduct(productAdminDTO: ProductAdminDTO): ResponseEntity<ProductAdminDTO> {
+
+        // Check if product already exist (by name and category)
+        if (getProduct(productAdminDTO.product!!) != null) {
+            // TODO: Ritorna messaggio di errore invece di ok
+                println("Product already exists")
+            return ResponseEntity.ok(ProductAdminDTO())
+        }
 
         // Convert ProductAdminDTO to Product
         val warehouse = WarehouseStock(
@@ -84,33 +88,93 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
         return ResponseEntity.ok(productAdminDTO)
     }
 
-//    override fun getProduct(product: ProductDTO) : Product? {
-//        val result = warehouseRepository.getProductByNameAndCategory(product.name!!, product.category!!)
-//        try {
-//            return result.get()
-//        } catch (e: Exception) {
-//            println(e)
-//            return Product()
-//        }
-//    }
+    override fun getDeliveries(orderDTO: OrderDTO) : DeliveryListDTO {
 
-//    override fun checkAvailability(orderDTO : OrderDTO) : Boolean {
-//        var areProductQuantitiesAvailable : Boolean = true
-//        for (purchase in orderDTO.purchases!!) {
-//            val requestedProduct = this.getProduct(purchase.product!!)
-//            var totAvailbleQuantity = 0
-//            for (el in requestedProduct?.stock!!) {
-//                totAvailbleQuantity += el.availableQuantity!!
-//            }
-//            if (purchase.quantity!! > totAvailbleQuantity) {
-//                areProductQuantitiesAvailable = false
-//                break
-//            }
-//        }
-//        return areProductQuantitiesAvailable
-//    }
+        // Check if products are available
+        if (checkAvailability(orderDTO) == false) {
+            // throw exception
+            return DeliveryListDTO()
+        }
+
+        // Create list of deliveries for each purchase of the order (each purchase contains one product, one product can have associated more than one delivery)
+
+        val deliveryList = mutableListOf<DeliveryDTO>() // List of DeliveryDTO to put into the DeliveryListDTO object
+        val productsToUpdate = mutableListOf<Product>() // List of documents to update on MongoDB
+
+        for (purchase in orderDTO.purchases!!) {
+
+            val requestedProduct = this.getProduct(purchase.product!!)
+            val stockToUpdate = requestedProduct?.stock
+
+            var remainingQuantity = purchase.quantity!!
+            for (warehouse in stockToUpdate!!) {
+                if (warehouse.availableQuantity!! >= remainingQuantity) {
+
+                    // Update stock
+                    warehouse.availableQuantity = warehouse.availableQuantity!! - remainingQuantity
+
+                    // Append delivery for this warehouse
+                    val warehouseDTO = WarehouseDTO(name=warehouse.warehouseName, address = warehouse.warehouseAddress)
+                    val deliveryDTO = DeliveryDTO(warehouseDTO, mapOf( purchase.product!! to remainingQuantity ))
+                    deliveryList.add(deliveryDTO)
+                    break
+
+                } else {
+                    // Update stock
+                    remainingQuantity -= warehouse.availableQuantity!!
+                    warehouse.availableQuantity = 0
+
+                    // Append delivery for this warehouse
+                    val warehouseDTO = WarehouseDTO(name=warehouse.warehouseName, address = warehouse.warehouseAddress)
+                    val deliveryDTO = DeliveryDTO(warehouseDTO, mapOf( purchase.product!! to remainingQuantity ))
+                    deliveryList.add(deliveryDTO)
+                }
+            }
+
+            productsToUpdate.add(requestedProduct)
+        }
+
+        // Update documents on MongoDB
+        productsToUpdate.forEach {
+            warehouseRepository.save(it)
+        }
+
+        return DeliveryListDTO(orderDTO, deliveryList)
+    }
+
+
+    override fun getProduct(product: ProductDTO): Product? {
+        val result = warehouseRepository.getProductByNameAndCategory(product.name!!, product.category!!)
+        try {
+            return result.get()
+        } catch (e: Exception) {
+            println(e)
+            return null
+        }
+    }
+
+    override fun checkAvailability(orderDTO: OrderDTO): Boolean {
+
+        var areProductQuantitiesAvailable: Boolean = true
+
+        for (purchase in orderDTO.purchases!!) {
+            val requestedProduct = this.getProduct(purchase.product!!) // Assume the product exists
+
+            val arrayOfQuantities = mutableListOf<Int>()
+            (requestedProduct?.stock!!).forEach {
+                arrayOfQuantities.add(it.availableQuantity!!)
+            }
+            if (purchase.quantity!! > arrayOfQuantities.sum()) {
+                areProductQuantitiesAvailable = false
+                break
+            }
+        }
+        return areProductQuantitiesAvailable
+    }
 
 
 }
+
+
 
 
