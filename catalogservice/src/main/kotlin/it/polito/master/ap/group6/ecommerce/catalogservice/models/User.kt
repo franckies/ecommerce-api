@@ -43,7 +43,7 @@ class User {
     var role: UserRole? = null
 
     //------- constructors -----------------------------------------------------
-    constructor(name: String, surname: String, username: String, password: String,
+    constructor(name: String, surname: String, username: String?, password: String?,
                 deliveryAddress: String? = null, role: UserRole = UserRole.CUSTOMER) {
         this.name = name
         this.surname = surname

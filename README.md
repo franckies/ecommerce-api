@@ -73,10 +73,11 @@ For each microservice, there are reported the classes that are defined in the mi
 |`POST /catalog/orders`| request: PlacedOrderDTO |Create an order for the currently logged user with the details specified in `PlacedOrderDTO`|
 |`DELETE /catalog/orders/{orderID}`| response: PlacedOrderDTO |Cancel an order `orderID` for the currently logged user (update its STATUS)|
 |`GET /catalog/wallet/{userID}`| response: WalletDTO |Retrieve the wallet information (total and transaction list) for the currently logged user|
-|`POST /catalog/admin/wallet/recharge/{userID}`| request: RechargeDTO |Recharge the user specified in `userID`|
+|`POST /catalog/wallet/admin/recharge/{userID}`| request: RechargeDTO |Recharge the user specified in `userID`|
 #### Wallet service endpoints
 |EP|Payload| Description|
 |---|---|---|
+|`PUT /wallet/create`| request: UserDTO response: WalletID|Catalog creates a new user so that Wallet can create a correspondent entry|
 |`POST /wallet/{userID}`| request: TransactionDTO response: TransactionID|Order insert a new transaction in the `userID`'s wallet|
 |`GET /wallet/{userID}`| response: WalletDTO|Catalog requests`userID`'s wallet and transaction list|
 |`POST /wallet/recharge/{userID}`| request: RechargeDTO|Catalog insert in the `userID`'s wallet a recharge|

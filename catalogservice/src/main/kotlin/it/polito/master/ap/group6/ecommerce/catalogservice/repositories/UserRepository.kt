@@ -23,4 +23,5 @@ import it.polito.master.ap.group6.ecommerce.catalogservice.models.User
 interface UserRepository: MongoRepository<User, ObjectId> {
     // custom queries
     fun findByUsername(username: String): Optional<User>
+    fun deleteByUsername(username: String)
 }
