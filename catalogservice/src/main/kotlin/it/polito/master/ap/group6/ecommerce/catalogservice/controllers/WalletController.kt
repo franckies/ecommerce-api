@@ -22,7 +22,7 @@ import it.polito.master.ap.group6.ecommerce.common.dtos.WalletDTO
 //   Class
 //======================================================================================================================
 /**
- * Exposes catalog endpoints, but aimed to the wallet-service microservice.
+ * Exposes catalog endpoints, but aimed to the Wallet microservice.
  * @param walletService a reference to the Service handling the business logic.
  *
  * @author Nicolò Chiapello
@@ -54,7 +54,7 @@ class WalletController(
 
     /**
      * Recharge a given amount of money for the selected user. Permitted only for the administrators.
-     * @return the HTTP code for success or vailure.
+     * @return the HTTP code for success or failure.
      * @throws HttpStatus.NOT_FOUND if the user doesn't exist.
      */
     @PostMapping("/admin/recharge/{userID}")

@@ -40,7 +40,7 @@ interface WalletService {
 /**
  * The business logic dealing with the external Wallet microservice.
  * @property userService a reference to the Service handling the User CRUD operations.
- * @property walletservice_url the URL of the external WalletService microservice, configurable by property file.
+ * @property walletservice_url the URL of the external Wallet microservice, configurable by property file.
  *
  * @author Nicolò Chiapello
  */
@@ -55,16 +55,16 @@ class WalletServiceImpl(
         val user_dto: UserDTO = user.toDto()
         val url: String = "http://${walletservice_url}/wallet/create"
 
-        // ask remotely to the WalletService microservice
-        var wallet_id: String? = null
+        // submit remotely to the WalletService microservice
+        var wallet_id: Unit? = null
         try {
-             wallet_id = RestTemplate().postForObject(  //TODO convert in PUT
+             wallet_id = RestTemplate().put(
                 url,  // url
                 user_dto,  // request
-                String::class.java  // responseType
+                String::class.java  // responseType  //TODO check meaning of this parameter
             )
         } catch (e: ResourceAccessException) {
-            System.err.println("Impossible to POST on '$url' the object:\n$user_dto")
+            System.err.println("Impossible to PUT on '$url' the object:\n$user_dto")
             return false
         }
 
@@ -88,7 +88,7 @@ class WalletServiceImpl(
                 WalletDTO::class.java  // responseType
             )
         } catch (e: ResourceAccessException) {
-            System.err.println("Impossible to GET on '$url'")
+            System.err.println("Impossible to GET from '$url'")
             return Optional.empty()
         }
 
@@ -107,11 +107,11 @@ class WalletServiceImpl(
         if (user.isEmpty)
             return false
 
-        // ask remotely to the WalletService microservice
+        // submit remotely to the WalletService microservice
         val url: String = "http://${walletservice_url}/wallet/${user.get().id}"
-        val transaction_id: String? = null
+        var transaction_id: String? = null
         try {
-            RestTemplate().postForObject(
+            transaction_id = RestTemplate().postForObject(
                 url,  // url
                 rechargeDto,  // request
                 String::class.java  // responseType

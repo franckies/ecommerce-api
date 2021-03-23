@@ -70,8 +70,8 @@ For each microservice, there are reported the classes that are defined in the mi
 |`POST /catalog/admin/products`| request: ProductAdminDTO |Admin adds a product specifying the warehouse|
 |`PUT /catalog/admin/products/{productID}`| request: ProductAdminDTO |Admin modify information of an existing product (eventually updating the alarm level)|
 |`GET /catalog/orders/{userID}`| response: PlacedOrderListDTO |Shows the orders associated with `userID`|
-|`POST /catalog/orders`| request: PlacedOrderDTO |Create an order for the currently logged user with the details specified in `PlacedOrderDTO`|
-|`DELETE /catalog/orders/{orderID}`| response: PlacedOrderDTO |Cancel an order `orderID` for the currently logged user (update its STATUS)|
+|`POST /catalog/orders/{userID}`| request: PlacedOrderDTO |Create an order for the `userID` user with the details specified in `PlacedOrderDTO`|
+|`DELETE /catalog/orders/{orderID}`| response: OrderDTO |Cancel an order `orderID` for the currently logged user (update its STATUS)|
 |`GET /catalog/wallet/{userID}`| response: WalletDTO |Retrieve the wallet information (total and transaction list) for the currently logged user|
 |`POST /catalog/wallet/admin/recharge/{userID}`| request: RechargeDTO |Recharge the user specified in `userID`|
 #### Wallet service endpoints
