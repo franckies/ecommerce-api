@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.*
 import org.bson.types.ObjectId
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
+import org.springframework.web.context.request.RequestContextHolder
+import org.springframework.web.context.request.ServletRequestAttributes
+import javax.servlet.http.HttpServletRequest
 
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.WalletService
@@ -40,6 +43,9 @@ class WalletController(
      */
     @GetMapping("/{userID}")
     fun getEconomicInformation(@PathVariable("userID") userID: String): WalletDTO {
+        // log incoming request
+        val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
+        println("Received GET on url='${currentRequest?.requestURL}'")
 
         // invoke the business logic
         val wallet_dto = walletService.askEconomicInformation(userID)
@@ -60,6 +66,9 @@ class WalletController(
     @PostMapping("/admin/recharge/{userID}")
     fun issueRecharge(@PathVariable("userID") userID: String,
                       @RequestBody rechargeDto: RechargeDTO): HttpStatus {
+        // log incoming request
+        val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
+        println("Received POST on url='${currentRequest?.requestURL}' with body=${rechargeDto}")
 
         // invoke the business logic
         val success: Boolean = walletService.issueRecharge(userID, rechargeDto)

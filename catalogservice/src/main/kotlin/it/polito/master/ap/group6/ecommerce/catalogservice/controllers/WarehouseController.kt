@@ -10,10 +10,16 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.*
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
+import org.springframework.web.context.request.RequestContextHolder
+import org.springframework.web.context.request.ServletRequestAttributes
+import javax.servlet.http.HttpServletRequest
+import javax.annotation.security.RolesAllowed
 
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.WarehouseService
 import it.polito.master.ap.group6.ecommerce.common.dtos.*
+import it.polito.master.ap.group6.ecommerce.common.misc.UserRole
+
 
 
 //======================================================================================================================
@@ -38,6 +44,9 @@ class WarehouseController(
      */
     @GetMapping("/show")
     fun showProducts(): ProductListDTO {
+        // log incoming request
+        val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
+        println("Received GET on url='${currentRequest?.requestURL}'")
 
         // invoke the business logic
         val products_list = warehouseService.showProducts()
@@ -46,7 +55,7 @@ class WarehouseController(
         if (products_list.isPresent)
             return products_list.get()
         else
-            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "message")
     }
 
 
@@ -57,6 +66,9 @@ class WarehouseController(
      */
     @GetMapping("/admin/show")
     fun showProductsPerWarehouse(): ProductAdminListDTO {
+        // log incoming request
+        val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
+        println("Received GET on url='${currentRequest?.requestURL}'")
 
         // invoke the business logic
         val products_list = warehouseService.showProductsPerWarehouse()
@@ -74,8 +86,12 @@ class WarehouseController(
      * @return the DTO corresponding to the created product.
      * @throws HttpStatus.NOT_FOUND if the remote microservice doesn't respond.
      */
+    @RolesAllowed("ADMIN")
     @PostMapping("/admin")
     fun createProduct(@RequestBody newProduct: ProductAdminDTO): ProductDTO {
+        // log incoming request
+        val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
+        println("Received POST on url='${currentRequest?.requestURL}' with body=${newProduct}")
 
         // invoke the business logic
         val created_product = warehouseService.createProduct(newProduct)
@@ -93,9 +109,13 @@ class WarehouseController(
      * @return the DTO corresponding to the updated product.
      * @throws HttpStatus.NOT_FOUND if the remote microservice doesn't respond.
      */
+    @RolesAllowed("ADMIN")
     @PutMapping("/admin/{productID}")
     fun createProduct(@PathVariable("productID") productID: String,
                       @RequestBody modifiedProduct: ProductAdminDTO): ProductDTO {
+        // log incoming request
+        val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
+        println("Received PUT on url='${currentRequest?.requestURL}' with body=${modifiedProduct}")
 
         // invoke the business logic
         val updated_product = warehouseService.modifyProduct(productID, modifiedProduct)

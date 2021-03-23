@@ -10,6 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.*
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
+import org.springframework.web.context.request.RequestContextHolder
+import org.springframework.web.context.request.ServletRequestAttributes
+import javax.servlet.http.HttpServletRequest
 
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.OrderService
@@ -39,9 +42,12 @@ class OrderController(
      * @return the representation of the created order (with ID and status).
      * @throws HttpStatus.NOT_FOUND if the user doesn't exist or the remote microservice doesn't respond.
      */
-    @PostMapping("")
+    @PostMapping("{userID}")
     fun createOrder(@PathVariable("userID") userID: String,  //TODO enhance by retrieving userID by the logged credentials
                     @RequestBody placedOrderDTO: PlacedOrderDTO): OrderDTO {
+        // log incoming request
+        val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
+        println("Received POST on url='${currentRequest?.requestURL}' with body=${placedOrderDTO}")
 
         // invoke the business logic
         val created_order = orderService.createOrder(userID, placedOrderDTO)
@@ -61,6 +67,9 @@ class OrderController(
      */
     @GetMapping("/{userID}")
     fun readOrderHistory(@PathVariable("userID") userID: String): PlacedOrderListDTO {
+        // log incoming request
+        val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
+        println("Received GET on url='${currentRequest?.requestURL}'")
 
         // invoke the business logic
         val placed_order_list_dto = orderService.readOrderHistory(userID)
@@ -80,6 +89,9 @@ class OrderController(
      */
     @DeleteMapping("/{orderID}")
     fun undoOrder(@PathVariable("orderID") orderID: String): OrderDTO {
+        // log incoming request
+        val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
+        println("Received DELETE on url='${currentRequest?.requestURL}'")
 
         // invoke the business logic
         val cancelled_order = orderService.undoOrder(orderID)
