@@ -23,6 +23,7 @@ class OrderController(
 ) {
     /**
      * POST a transaction into the database.
+     * Confirm or refuse a transaction according to products availability in the orderService
      * @return ID corresponding to the saved transaction.
      */
     @PostMapping("/performtransaction/{transactionID}")
@@ -33,6 +34,11 @@ class OrderController(
 
     }
 
+    /**
+     * POST a transaction into the database.
+     * Check if there are enough money in the userID wallet
+     * @return ID corresponding to the saved transaction.
+     */
     @PostMapping("/checkavailability/{userID}")
     fun checkTransaction(@RequestBody checkTransaction: TransactionDTO, @PathVariable("userID") userID: String): ResponseEntity<String?> {
 
@@ -48,6 +54,7 @@ class OrderController(
 
     /**
      * POST a transaction into the database.
+     * Recharge a given amount to the userID wallet
      * @return ID corresponding to the saved transaction.
      */
     @PostMapping("/recharge/{userID}")
@@ -59,9 +66,8 @@ class OrderController(
     }
 
     /**
-     * GET the order having orderID as identifier.
-     * @return the DTO corresponding to the retrieved order.
-     * @throws HttpStatus.NOT_FOUND if the order doesn't exist.
+     * GET the wallet having orderID as identifier.
+     * @return the DTO corresponding to the retrieved wallet.
      */
     @GetMapping("/{userID}")
     fun getWallet(@PathVariable("userID") userID: String): ResponseEntity<WalletDTO> {

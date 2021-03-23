@@ -22,8 +22,9 @@ interface WalletService {
 
 /**
  * The order service. Implements the business logic.
- * @param orderRepository a reference to the Repository handling the database interaction.
- * @author Francesco Semeraro
+ * @param walletRepository a reference to the wallet Repository handling the database interaction.
+ * @param transactionRepository a reference to the transaction Repository handling the database interaction.
+ * @author Andrea Biondo
  */
 @Service
 class WalletServiceImpl(
