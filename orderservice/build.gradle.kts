@@ -27,6 +27,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.8.5")
     implementation("io.springfox:springfox-swagger2:2.7.0")
     implementation("io.springfox:springfox-swagger-ui:2.7.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
 

@@ -11,7 +11,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
-import javax.annotation.security.RolesAllowed
 
 /**
  * The order controller. Exposes the endpoints.
@@ -21,48 +20,35 @@ import javax.annotation.security.RolesAllowed
 @RestController
 @RequestMapping("/order")
 class OrderController(
-    @Autowired private val orderService: OrderService
+    @Autowired private val orderService: OrderService,
 ) {
     /**
      * POST an order into the database.
-     * @return DTO corresponding to the saved order.
+     * @return The saved order. It will have as status PAID if it is submitted successfully,
+     * FAILED otherwise.
      */
     @PostMapping("/orders")
     //@RolesAllowed("SERVICE") //TODO: check if it is like this
     fun createOrder(@RequestBody placedOrder: PlacedOrderDTO): ResponseEntity<OrderDTO> {
         val order = orderService.createOrder(placedOrder)
-        return ResponseEntity.ok(order.toDto())
+        return ResponseEntity.ok(order!!.toDto())
     }
 
     /**
      * GET the order having orderID as identifier.
-     * @return the DTO corresponding to the retrieved order.
+     * @return A list of OrderDTO, each one corresponding to a delivery associated to the requested order.
      * @throws HttpStatus.NOT_FOUND if the order doesn't exist.
      */
     @GetMapping("/orders/{orderID}")
-    fun getOrder(@PathVariable("orderID") orderID: String): OrderDTO {
-        //TODO: ObjectId generates exception if id is not valid hex.
-        val order = orderService.getOrder(ObjectId(orderID))
-        if (order.isPresent) {
-            return order.get().toDto()
-        } else {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND)
-        }
-    }
-
-    /**
-     * GET the status of the order having orderID as identifier.
-     * @return the order status.
-     * @throws HttpStatus.NOT_FOUND if the order doesn't exist.
-     */
-    @GetMapping("/orders/{orderID}/status")
-    fun getOrderStatus(@PathVariable("orderID") orderID: String): OrderStatus? {
-        //TODO: ObjectId generates exception if id is not valid hex.
-        val order = orderService.getOrder(ObjectId(orderID))
-        if (order.isPresent) {
-            return order.get().status
-        } else {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+    fun getOrder(@PathVariable("orderID") orderID: String): List<OrderDTO>? {
+        try {
+            val orderList = orderService.getOrder(ObjectId(orderID)) ?: throw ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                "The order $orderID cannot be found"
+            )
+            return orderList.map { it.toDto() }
+        } catch (e: IllegalArgumentException) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "The order $orderID cannot be found")
         }
     }
 
@@ -72,13 +58,12 @@ class OrderController(
      * @throws HttpStatus.NOT_FOUND if the user doesn't exists.
      */
     @GetMapping("/{userID}/orders/")
-    fun getOrdersByUser(@PathVariable("userID") userID: String): List<OrderDTO> {
-        val orders = orderService.getOrdersByUser(userID)
-        if (orders.all { it.isPresent }) {
-            return orders.map { it.get().toDto() }
-        } else {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND)
-        }
+    fun getOrdersByUser(@PathVariable("userID") userID: String): List<List<OrderDTO>>? {
+        val ordersList = orderService.getOrdersByUser(userID) ?: throw ResponseStatusException(
+            HttpStatus.NOT_FOUND,
+            "The user $userID cannot be found"
+        )
+        return ordersList.map { it.map { it.toDto() } }
     }
 
     /**
@@ -89,17 +74,22 @@ class OrderController(
      */
     @DeleteMapping("orders/{orderID}")
     fun cancelOrder(@PathVariable("orderID") orderID: String): OrderDTO? {
-        //TODO: ObjectId generates exception if id is not valid hex.
-        val canceledOrder = orderService.cancelOrder(ObjectId(orderID))
-        if (canceledOrder.isPresent) {
-            if (canceledOrder.get().status == OrderStatus.CANCELLED) {
-                return canceledOrder.get().toDto()
+        try {
+            val canceledOrder = orderService.cancelOrder(ObjectId(orderID))
+            if (canceledOrder.isPresent) {
+                if (canceledOrder.get().status == OrderStatus.CANCELED) {
+                    return canceledOrder.get().toDto()
+                } else {
+                    throw ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "The order $orderID cannot be canceled because it has been already delivered"
+                    )
+                }
             } else {
-                throw ResponseStatusException(HttpStatus.FORBIDDEN)
+                throw ResponseStatusException(HttpStatus.NOT_FOUND, "The order $orderID cannot be found")
             }
-        } else {
-            ResponseStatusException(HttpStatus.NOT_FOUND)
+        } catch (e: IllegalArgumentException) {
+            throw ResponseStatusException(HttpStatus.NOT_FOUND, "The order $orderID cannot be found")
         }
-        return null
     }
 }

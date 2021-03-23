@@ -5,9 +5,20 @@ enum class OrderStatus {
     DELIVERING,
     DELIVERED,
     FAILED,
-    CANCELLED
+    CANCELED,
+    PENDING
 }
-
+enum class DeliveryStatus {
+    PENDING,
+    DELIVERING,
+    DELIVERED,
+    CANCELED
+}
+enum class TransactionStatus {
+    PENDING,
+    ACCEPTED,
+    REFUSED
+}
 enum class UserRole {
     CUSTOMER,
     ADMIN,

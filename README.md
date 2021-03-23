@@ -77,7 +77,8 @@ For each microservice, there are reported the classes that are defined in the mi
 #### Wallet service endpoints
 |EP|Payload| Description|
 |---|---|---|
-|`POST /wallet/{userID}`| request: TransactionDTO response: TransactionID|Order insert a new transaction in the `userID`'s wallet|
+|`POST /wallet/checkavailability/{userID}`| request: TransactionDTO response: TransactionID|Order checks for availability to start a new order on `userID`'s wallet|
+|`POST /wallet/performtransaction/{transactionID}`| request: TransactionID response: Boolean|Order insert a new transaction previously checked.|
 |`GET /wallet/{userID}`| response: WalletDTO|Catalog requests`userID`'s wallet and transaction list|
 |`POST /wallet/recharge/{userID}`| request: RechargeDTO|Catalog insert in the `userID`'s wallet a recharge|
 #### Warehouse service endpoints
@@ -89,11 +90,13 @@ For each microservice, there are reported the classes that are defined in the mi
 |`PUT /warehouse/products/{productID}`| request: ProductAdminDTO |Catalog modifies a product in a specific warehouse (eventually updating the alarm level) |
 |`POST /warehouse/orders`| request: OrderDTO response: DeliveryListDTO |Order request a new order and receives a list of deliveries|
 |`DELETE /warehouse/orders`| request: OrderDTO |Order deletes a previously requested order (it has been canceled by the user) |
+
 #### Order service endpoints
 |EP|Payload| Description|
 |---|---|---|
-|`POST /order/orders/`| request: PlacedOrderDTO |Catalog insert a new order|
-|`GET /order/orders/user/{userID}`| response: PlacedOrderListDTO |Catalog requests the orders of `userID`|
+|`POST /order/orders/`| request: PlacedOrderDTO response: OrderDTO|Catalog insert a new order. The newly created order is returned, having STATUS PAID or FAILED|
+|`GET /order/{userID}/orders`| response: List<OrderDTO> |Catalog requests the orders of `userID`|
+|`GET /order/orders/{orderID}`| response: OrderDTO |Catalog requests the order `orderID`|
 |`DELETE /order/orders/{orderID}`| response: OrderDTO |Catalog requests to cancel the order `orderID` (updating its STATUS, if it has not been shipped yet)|
 
 ### DTOs definition
@@ -106,12 +109,12 @@ ProductListAdminDTO(List<ProductAdminDTO>)
 
 UserDTO(userID, name, surname, email, role)
 PurchaseDTO(ProductDTO, quantity, sellingPrice)
-TransactionDTO(UserDTO, amount, time, causale, List<PurchaseDTO>)
+TransactionDTO(UserDTO, amount, time, causale, status)
 RechargeDTO(UserDTO, amount, time, causale,??UserDTO(who charges)??)
 WarehouseDTO(name, address)
 
-OrderDTO(OrderID, Dict<ProductDTO, quantity>)
-DeliveryDTO(WarehouseDTO, Dict<ProductDTO,quantity>)
+OrderDTO(OrderID, List<PurchaseDTO>, status)
+DeliveryDTO(WarehouseDTO, List<PurchaseDTO>)
 DeliveryListDTO(OrderDTO, List<DeliveryDTO>)
 
 PlacedOrderDTO(UserDTO, List<PurchaseDTO>, deliveryAddress)
