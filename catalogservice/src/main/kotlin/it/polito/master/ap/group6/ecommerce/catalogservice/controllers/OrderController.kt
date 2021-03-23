@@ -23,7 +23,7 @@ import it.polito.master.ap.group6.ecommerce.common.dtos.PlacedOrderDTO
 //   Class
 //======================================================================================================================
 /**
- * Exposes catalog endpoints, but aimed to the Order microservice.
+ * Exposes Catalog endpoints, but aimed to the Order microservice.
  * @param orderService a reference to the Service handling the business logic.
  *
  * @author Nicolò Chiapello
@@ -37,7 +37,7 @@ class OrderController(
     /**
      * Create an order for the userID user with the details specified in PlacedOrderDTO.
      * @return the representation of the created order (with ID and status).
-     * @throws HttpStatus.NOT_FOUND if the user doesn't exist or the remote microservice doesn't work.
+     * @throws HttpStatus.NOT_FOUND if the user doesn't exist or the remote microservice doesn't respond.
      */
     @PostMapping("")
     fun createOrder(@PathVariable("userID") userID: String,  //TODO enhance by retrieving userID by the logged credentials
@@ -57,7 +57,7 @@ class OrderController(
     /**
      * Shows the orders associated with given user.
      * @return the DTO corresponding to the list of all the submitted orders.
-     * @throws HttpStatus.NOT_FOUND if the user doesn't exist or the remote microservice doesn't work.
+     * @throws HttpStatus.NOT_FOUND if the user doesn't exist or the remote microservice doesn't respond.
      */
     @GetMapping("/{userID}")
     fun readOrderHistory(@PathVariable("userID") userID: String): PlacedOrderListDTO {
@@ -76,7 +76,7 @@ class OrderController(
     /**
      * Cancel an order orderID for the currently logged user (update its STATUS).
      * @return the DTO corresponding to the cancelled order.
-     * @throws HttpStatus.NOT_FOUND if the user doesn't exist or the remote microservice doesn't work.
+     * @throws HttpStatus.NOT_FOUND if the user doesn't exist or the remote microservice doesn't respond.
      */
     @DeleteMapping("/{orderID}")
     fun undoOrder(@PathVariable("orderID") orderID: String): OrderDTO {

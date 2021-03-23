@@ -22,7 +22,7 @@ import it.polito.master.ap.group6.ecommerce.common.dtos.WalletDTO
 //   Class
 //======================================================================================================================
 /**
- * Exposes catalog endpoints, but aimed to the Wallet microservice.
+ * Exposes Catalog endpoints, but aimed to the Wallet microservice.
  * @param walletService a reference to the Service handling the business logic.
  *
  * @author Nicolò Chiapello

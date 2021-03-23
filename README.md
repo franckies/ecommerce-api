@@ -66,9 +66,9 @@ For each microservice, there are reported the classes that are defined in the mi
 |EP|Payload| Description|
 |---|---|---|
 |`GET /catalog/products/show`| response: ProductListDTO |Shows the catalog (the same for all users)|
-|`GET /catalog/admin/products/show`| response: ProductListAdminDTO |Shows the catalog for an admin user with warehouse information|
-|`POST /catalog/admin/products`| request: ProductAdminDTO |Admin adds a product specifying the warehouse|
-|`PUT /catalog/admin/products/{productID}`| request: ProductAdminDTO |Admin modify information of an existing product (eventually updating the alarm level)|
+|`GET /catalog/products/admin/show`| response: ProductAdminListDTO |Shows the catalog for an admin user with warehouse information|
+|`POST /catalog/products/admin`| request: ProductAdminDTO response: ProductDTO |Admin adds a product specifying the warehouse|
+|`PUT /catalog/products/admin/{productID}`| request: ProductAdminDTO response: ProductDTO |Admin modify information of an existing product (eventually updating the alarm level)|
 |`GET /catalog/orders/{userID}`| response: PlacedOrderListDTO |Shows the orders associated with `userID`|
 |`POST /catalog/orders/{userID}`| request: PlacedOrderDTO |Create an order for the `userID` user with the details specified in `PlacedOrderDTO`|
 |`DELETE /catalog/orders/{orderID}`| response: OrderDTO |Cancel an order `orderID` for the currently logged user (update its STATUS)|
@@ -85,9 +85,9 @@ For each microservice, there are reported the classes that are defined in the mi
 |EP|Payload| Description|
 |---|---|---|
 |`GET /warehouse/products/totals`| response: ProductListDTO |Catalog requests a list of products (overall quantity)|
-|`GET /warehouse/products/perwarehouse`| response: ProductListAdminDTO |Catalog requests a list of products (for each warehouse) |
-|`POST /warehouse/products`| request: ProductAdminDTO |Catalog insert a new product in a specific warehouse |
-|`PUT /warehouse/products/{productID}`| request: ProductAdminDTO |Catalog modifies a product in a specific warehouse (eventually updating the alarm level) |
+|`GET /warehouse/products/perwarehouse`| response: ProductAdminListDTO |Catalog requests a list of products (for each warehouse) |
+|`POST /warehouse/products`| request: ProductAdminDTO response: ProductDTO |Catalog insert a new product in a specific warehouse |
+|`PUT /warehouse/products/{productID}`| request: ProductAdminDTO response: ProductDTO |Catalog modifies a product in a specific warehouse (eventually updating the alarm level) |
 |`POST /warehouse/orders`| request: OrderDTO response: DeliveryListDTO |Order request a new order and receives a list of deliveries|
 |`DELETE /warehouse/orders`| request: OrderDTO |Order deletes a previously requested order (it has been canceled by the user) |
 #### Order service endpoints
