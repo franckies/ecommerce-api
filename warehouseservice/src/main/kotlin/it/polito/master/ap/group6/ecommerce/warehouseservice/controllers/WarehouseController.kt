@@ -26,13 +26,23 @@ class WarehouseController(val warehouseService: WarehouseService) {
     }
 
     @PostMapping("/warehouse/products")
-    fun insertNewProduct(@RequestBody productAdminDTO : ProductAdminDTO) : ResponseEntity<ProductAdminDTO> {
-        return warehouseService.insertNewProduct(productAdminDTO)
+    fun insertNewProduct(@RequestBody productAdminDTO : ProductAdminDTO) : ResponseEntity<ProductAdminDTO>? {
+        val result = warehouseService.insertNewProduct(productAdminDTO)
+        return if (result!=null) {
+            ResponseEntity.ok(result)
+        } else {
+            null
+        }
     }
 
     @PostMapping("/warehouse/orders")
     fun getDeliveries(@RequestBody orderDTO: OrderDTO) : DeliveryListDTO {
         return warehouseService.getDeliveries(orderDTO)
+    }
+
+    @DeleteMapping("/warehouse/orders")
+    fun cancelDeliveries(@RequestBody deliveryListDTO: DeliveryListDTO) : Boolean {
+        return warehouseService.updateStocksAfterDeliveriesCancellation(deliveryListDTO)
     }
 
 //    @GetMapping("/debug")

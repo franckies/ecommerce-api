@@ -6,16 +6,17 @@ import it.polito.master.ap.group6.ecommerce.warehouseservice.model.WarehouseStoc
 import it.polito.master.ap.group6.ecommerce.warehouseservice.repositories.WarehouseRepository
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
+import org.springframework.web.bind.annotation.RequestBody
 
 interface WarehouseService {
-//    fun getAll() : MutableList<Warehouse>
 
     fun getProductsTotals(): ProductListDTO?
     fun getProductsPerWarehouse(): ProductListAdminDTO?
-    fun insertNewProduct(productAdminDTO: ProductAdminDTO): ResponseEntity<ProductAdminDTO>
+    fun insertNewProduct(productAdminDTO: ProductAdminDTO): ProductAdminDTO? // return productAdminDTO if inserted, null otherwise
     fun getProduct(product: ProductDTO): Product?
     fun checkAvailability(orderDTO: OrderDTO): Boolean
     fun getDeliveries(orderDTO: OrderDTO): DeliveryListDTO
+    fun updateStocksAfterDeliveriesCancellation(deliveryListDTO: DeliveryListDTO) : Boolean
 }
 
 @Service
@@ -63,13 +64,12 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
         return productListAdminDTO
     }
 
-    override fun insertNewProduct(productAdminDTO: ProductAdminDTO): ResponseEntity<ProductAdminDTO> {
+    override fun insertNewProduct(productAdminDTO: ProductAdminDTO): ProductAdminDTO? {
 
         // Check if product already exist (by name and category)
         if (getProduct(productAdminDTO.product!!) != null) {
-            // TODO: Ritorna messaggio di errore invece di ok
                 println("Product already exists")
-            return ResponseEntity.ok(ProductAdminDTO())
+            return null
         }
 
         // Convert ProductAdminDTO to Product
@@ -84,8 +84,14 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
         )
 
         // Save to MongoDB
-        warehouseRepository.save(productToStore)
-        return ResponseEntity.ok(productAdminDTO)
+        var result : ProductAdminDTO? = null
+        try {
+            warehouseRepository.save(productToStore)
+            result = productAdminDTO
+        } catch (e: Exception) {
+            println(e)
+        }
+        return result
     }
 
     override fun getDeliveries(orderDTO: OrderDTO) : DeliveryListDTO {
@@ -142,6 +148,36 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
         }
 
         return DeliveryListDTO(orderDTO.orderID, deliveryList)
+    }
+
+    // Assume the products and the corresponding warehouse are actually present in the DB
+    override fun updateStocksAfterDeliveriesCancellation(deliveryListDTO: DeliveryListDTO): Boolean {
+        // Check purchases and update stocks in mongoDB
+        for (deliveryDTO in deliveryListDTO.deliveryList!!) {
+
+            val warehouseOfOrigin = deliveryDTO.warehouse
+
+            for (purchase in deliveryDTO.delivery!!) {
+
+                val documentToUpdate = this.getProduct(purchase.product!!) // Assume the product exists
+                val stockToUpdate = documentToUpdate?.stock
+
+                // Update the product of the interested warehouse
+                for (stock in stockToUpdate!!) {
+                    if (stock.warehouseName == warehouseOfOrigin?.name) // Assume name of the warehouse is the primary key
+                    {
+                        stock.availableQuantity = stock.availableQuantity!! + purchase.quantity!!
+
+                        //TODO: Update also the alarm level
+
+                        break
+                    }
+                }
+                // Update result in MongoDB
+                warehouseRepository.save(documentToUpdate)
+            }
+        }
+        return true
     }
 
 
