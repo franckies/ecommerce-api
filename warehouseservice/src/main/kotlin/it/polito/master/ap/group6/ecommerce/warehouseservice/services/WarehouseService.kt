@@ -115,7 +115,8 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
 
                     // Append delivery for this warehouse
                     val warehouseDTO = WarehouseDTO(name=warehouse.warehouseName, address = warehouse.warehouseAddress)
-                    val deliveryDTO = DeliveryDTO(warehouseDTO, mapOf( purchase.product!! to remainingQuantity ))
+//                    val deliveryDTO = DeliveryDTO(warehouseDTO, mapOf( purchase.product!! to remainingQuantity ))
+                    val deliveryDTO = DeliveryDTO(warehouseDTO, orderDTO.purchases)
                     deliveryList.add(deliveryDTO)
                     break
 
@@ -126,7 +127,8 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
 
                     // Append delivery for this warehouse
                     val warehouseDTO = WarehouseDTO(name=warehouse.warehouseName, address = warehouse.warehouseAddress)
-                    val deliveryDTO = DeliveryDTO(warehouseDTO, mapOf( purchase.product!! to remainingQuantity ))
+//                    val deliveryDTO = DeliveryDTO(warehouseDTO, mapOf( purchase.product!! to remainingQuantity ))
+                    val deliveryDTO = DeliveryDTO(warehouseDTO, orderDTO.purchases)
                     deliveryList.add(deliveryDTO)
                 }
             }
@@ -139,7 +141,7 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
             warehouseRepository.save(it)
         }
 
-        return DeliveryListDTO(orderDTO, deliveryList)
+        return DeliveryListDTO(orderDTO.orderID, deliveryList)
     }
 
 
