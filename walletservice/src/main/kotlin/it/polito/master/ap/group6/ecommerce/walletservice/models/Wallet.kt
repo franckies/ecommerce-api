@@ -7,6 +7,8 @@ import org.springframework.data.mongodb.core.mapping.Document
 
 @Document("wallets")
 class Wallet (
+    @Id
+    var id: String? = null,
     val user: UserDTO? = null,
     var total: Double? = null,
     val transactions: MutableList<Transaction>? = null
