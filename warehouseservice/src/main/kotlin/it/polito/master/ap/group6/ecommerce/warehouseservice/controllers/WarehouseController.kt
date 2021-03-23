@@ -26,8 +26,8 @@ class WarehouseController(val warehouseService: WarehouseService) {
     }
 
     @PostMapping("/warehouse/products")
-    fun insertNewProduct(@RequestBody productAdminDTO : ProductAdminDTO) : ResponseEntity<ProductAdminDTO>? {
-        val result = warehouseService.insertNewProduct(productAdminDTO)
+    fun insertNewProductInWarehouse(@RequestBody productAdminDTO : ProductAdminDTO) : ResponseEntity<ProductAdminDTO>? {
+        val result = warehouseService.insertNewProductInWarehouse(productAdminDTO)
         return if (result!=null) {
             ResponseEntity.ok(result)
         } else {
@@ -45,15 +45,14 @@ class WarehouseController(val warehouseService: WarehouseService) {
         return warehouseService.updateStocksAfterDeliveriesCancellation(deliveryListDTO)
     }
 
-//    @GetMapping("/debug")
-//    fun getProduct(product : ProductDTO): Product? {
-//        return warehouseService.getProduct(product)
-//    }
-//
-//    @GetMapping("/debug2")
-//    fun checkAvailability(orderDTO : OrderDTO) : Boolean {
-//        return warehouseService.checkAvailability(orderDTO)
-//    }
-
+    @PutMapping("/warehouse/products")
+    fun updateProductInWarehouse(@RequestBody productAdminDTO: ProductAdminDTO, productID: String) : ResponseEntity<ProductAdminDTO>? {
+        val result = warehouseService.updateProductInWarehouse(productID, productAdminDTO)
+        return if (result!=null) {
+            ResponseEntity.ok(result)
+        } else {
+            null
+        }
+    }
 
 }

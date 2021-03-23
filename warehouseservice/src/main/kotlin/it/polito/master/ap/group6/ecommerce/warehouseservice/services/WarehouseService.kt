@@ -4,6 +4,7 @@ import it.polito.master.ap.group6.ecommerce.common.dtos.*
 import it.polito.master.ap.group6.ecommerce.warehouseservice.model.Product
 import it.polito.master.ap.group6.ecommerce.warehouseservice.model.WarehouseStock
 import it.polito.master.ap.group6.ecommerce.warehouseservice.repositories.WarehouseRepository
+import org.bson.types.ObjectId
 import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
 import org.springframework.web.bind.annotation.RequestBody
@@ -12,11 +13,12 @@ interface WarehouseService {
 
     fun getProductsTotals(): ProductListDTO?
     fun getProductsPerWarehouse(): ProductListAdminDTO?
-    fun insertNewProduct(productAdminDTO: ProductAdminDTO): ProductAdminDTO? // return productAdminDTO if inserted, null otherwise
+    fun insertNewProductInWarehouse(productAdminDTO: ProductAdminDTO): ProductAdminDTO? // return productAdminDTO if inserted, null otherwise
     fun getProduct(product: ProductDTO): Product?
     fun checkAvailability(orderDTO: OrderDTO): Boolean
     fun getDeliveries(orderDTO: OrderDTO): DeliveryListDTO
     fun updateStocksAfterDeliveriesCancellation(deliveryListDTO: DeliveryListDTO) : Boolean
+    fun updateProductInWarehouse(productID:String, productAdminDTO: ProductAdminDTO) : ProductAdminDTO? // return productAdminDTO if updated, null otherwise
 }
 
 @Service
@@ -64,11 +66,11 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
         return productListAdminDTO
     }
 
-    override fun insertNewProduct(productAdminDTO: ProductAdminDTO): ProductAdminDTO? {
+    override fun insertNewProductInWarehouse(productAdminDTO: ProductAdminDTO): ProductAdminDTO? {
 
         // Check if product already exist (by name and category)
         if (getProduct(productAdminDTO.product!!) != null) {
-                println("Product already exists")
+            println("Product already exists")
             return null
         }
 
@@ -178,6 +180,59 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
             }
         }
         return true
+    }
+
+    override fun updateProductInWarehouse(productID: String, productAdminDTO: ProductAdminDTO): ProductAdminDTO? {
+
+        val productToUpdate : Product
+        try {
+            productToUpdate = warehouseRepository.findById(productID).get() // Assume the product exists
+        } catch (e : Exception) {
+            println(e)
+            return null
+        }
+
+        val updateStock = productToUpdate.stock
+        var requestedWarehouseAlreadyExist = false
+        for (stock in updateStock!!) { // The product is already in that warehouse
+            if (stock.warehouseName == productAdminDTO.warehouse!!.name) {
+                stock.warehouseAddress = productAdminDTO.warehouse!!.address
+                stock.availableQuantity = productAdminDTO.warehouseQuantity
+                stock.alarmLevel = productAdminDTO.alarmLevel
+                requestedWarehouseAlreadyExist = true
+                break
+            }
+        }
+        if (!requestedWarehouseAlreadyExist) { // The product is not stored in that warehouse
+            updateStock.add(WarehouseStock(
+                productAdminDTO.warehouse!!.name, productAdminDTO.warehouse!!.address,
+                productAdminDTO.warehouseQuantity, productAdminDTO.alarmLevel
+            ))
+        }
+
+        val documentToUpdate = Product(
+
+            // ID field does not change
+            id = ObjectId(productID),
+
+            // Eventually change price, picture, stock
+            name = productAdminDTO.product!!.name,
+            category = productAdminDTO.product!!.category,
+            currentPrice = productAdminDTO.product!!.currentPrice,
+            picture = productAdminDTO.product!!.picture,
+            stock = updateStock
+        )
+
+        // Save to MongoDB
+        var result : ProductAdminDTO? = null
+        try {
+            warehouseRepository.save(documentToUpdate)
+            result = productAdminDTO
+        } catch (e: Exception) {
+            println(e)
+        }
+        return result
+
     }
 
 
