@@ -8,5 +8,5 @@ import java.util.*
 
 @Repository
 interface OrderRepository: MongoRepository<Order, ObjectId> {
-    fun findByBuyerId(id: String): List<Optional<Order>>
+    fun findByBuyerId(id: String): Optional<List<Order>>
 }

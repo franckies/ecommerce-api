@@ -8,6 +8,7 @@ import it.polito.master.ap.group6.ecommerce.orderservice.models.Delivery
 import it.polito.master.ap.group6.ecommerce.orderservice.models.Order
 import it.polito.master.ap.group6.ecommerce.orderservice.models.Purchase
 import it.polito.master.ap.group6.ecommerce.orderservice.models.dtos.toDto
+import it.polito.master.ap.group6.ecommerce.orderservice.models.dtos.toModel
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.DeliveryRepository
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.OrderRepository
 import org.springframework.beans.factory.annotation.Autowired
@@ -65,7 +66,12 @@ class OrderserviceApplication(
             //add(Delivery(orderList[1].id, "Turin", WarehouseDTO("Ebay", "Roma"), listOf(purchaseList2[0]), DeliveryStatus.DELIVERING))
             //add(Delivery(orderList[1].id, "Turin", WarehouseDTO("Ebay", "Bari"), listOf(purchaseList2[1]), DeliveryStatus.PENDING))
         }
-        val d = DeliveryListDTO(orderList[0].id, deliveryList.map { it.toDto() })
+
+        val testDeliveryList = mutableListOf<Delivery>().apply{
+            add(Delivery(o.toModel().id, "Turin", WarehouseDTO("Amazon", "Roma"), listOf(purchaseList1[0]), DeliveryStatus.PENDING))
+            add(Delivery(o.toModel().id, "Turin", WarehouseDTO("Amazon", "Lecce"), listOf(purchaseList1[1]), DeliveryStatus.PENDING))
+        }
+        val d = DeliveryListDTO(o.toModel().id, testDeliveryList.map { it.toDto() })
         val jsonStringd = Gson().toJson(d)
         println(jsonStringd)
         deliveryRepo.saveAll(deliveryList)

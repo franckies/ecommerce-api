@@ -1,8 +1,8 @@
 package it.polito.master.ap.group6.ecommerce.orderservice.services
 
 import com.google.gson.Gson
-import com.google.gson.JsonObject
 import it.polito.master.ap.group6.ecommerce.common.dtos.DeliveryListDTO
+import it.polito.master.ap.group6.ecommerce.common.dtos.OrderDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.PlacedOrderDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.TransactionDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.DeliveryStatus
@@ -15,9 +15,6 @@ import it.polito.master.ap.group6.ecommerce.orderservice.models.dtos.toDto
 import it.polito.master.ap.group6.ecommerce.orderservice.models.dtos.toModel
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.DeliveryRepository
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.OrderRepository
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.bson.types.ObjectId
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -26,10 +23,10 @@ import org.springframework.web.client.RestTemplate
 import java.util.*
 
 interface OrderService {
-    fun createOrder(placedOrder: PlacedOrderDTO): Order?
-    fun getOrder(orderID: ObjectId): List<Order>?
-    fun getOrdersByUser(userID: String): List<List<Order>>?
-    fun cancelOrder(orderID: ObjectId): Optional<Order>
+    fun createOrder(placedOrder: PlacedOrderDTO): OrderDTO?
+    fun getOrder(orderID: ObjectId): List<OrderDTO>?
+    fun getOrdersByUser(userID: String): List<List<OrderDTO>>?
+    fun cancelOrder(orderID: ObjectId): OrderDTO
 
     fun checkWallet(order: Order): String?
     fun completeTransaction(transactionId: String, order: Order): String?
@@ -38,7 +35,9 @@ interface OrderService {
 
 /**
  * The order service. Implements the business logic.
- * @param orderRepository a reference to the Repository handling the database interaction.
+ * @param orderRepository a reference to the Repository handling the database interaction for orders.
+ * @param deliveryRepository a reference to the Repository handling the database interaction for deliveries.
+ * @param deliveryService the service simulating the shipping of the orders.
  * @author Francesco Semeraro
  */
 @Service
@@ -46,8 +45,8 @@ interface OrderService {
 class OrderServiceImpl(
     @Autowired private val orderRepository: OrderRepository,
     @Autowired private val deliveryRepository: DeliveryRepository,
+    @Autowired private val deliveryService: DeliveryService
 ) : OrderService {
-
 
     /**
      * Create an order inserting it into the database. The order will have a FAILED status if the user hasn't enough
@@ -57,7 +56,7 @@ class OrderServiceImpl(
      * @param placedOrder, the order placed by the CatalogueService
      * @return an Order instance. It will have as status PAID if it is submitted successfully, FAILED otherwise
      */
-    override fun createOrder(placedOrder: PlacedOrderDTO): Order? {
+    override fun createOrder(placedOrder: PlacedOrderDTO): OrderDTO? {
         //Create the order in PENDING status (no checks have been performed yet)
         var order = placedOrder.toModel()
         order.status = OrderStatus.PENDING
@@ -67,7 +66,7 @@ class OrderServiceImpl(
         val transactionId = checkWallet(order) ?: run {
             order.status = OrderStatus.FAILED
             orderRepository.save(order)
-            return order //return if there aren't enough money or the wallet service is down
+            return order.toDto() //return if there aren't enough money or the wallet service is down
         }
 
         //STEP 2: if there are enough money, submit the order
@@ -75,20 +74,23 @@ class OrderServiceImpl(
         if (!orderSubmitted) {
             order.status = OrderStatus.FAILED
             orderRepository.save(order)
-            return order //Return if there aren't enough products or the warehouse service is down
+            return order.toDto() //Return if there aren't enough products or the warehouse service is down
         }
 
         //STEP 3: complete the transaction if the delivery has started and mark order as paid
-        val transactionResult = completeTransaction(transactionId, order) ?: run {
+        completeTransaction(transactionId, order) ?: run {
             order.status = OrderStatus.FAILED
             orderRepository.save(order)
-            return order //return if the transaction fails or the wallet service is down
+            return order.toDto() //return if the transaction fails or the wallet service is down
         }
 
         order.status = OrderStatus.PAID
         order = orderRepository.save(order)
-        //TODO: if at least one delivery associated to an order is in DELIVERING state, then the order is in DELIVERING and cannot be canceled.
-        return order
+
+        //Start the handler for the deliveries
+        deliveryService.startDeliveries(order.id.toString())
+
+        return order.toDto()
     }
 
     /**
@@ -96,24 +98,27 @@ class OrderServiceImpl(
      * that order. In this way we have a more fine-grained control of the status of each delivery in the order.
      * @param orderID, the id of the desired order
      */
-    override fun getOrder(orderID: ObjectId): List<Order>? {
+    override fun getOrder(orderID: ObjectId): List<OrderDTO>? {
         val deliveries = deliveryRepository.findByOrderID(orderID.toString())
-        val order = orderRepository.findById(orderID)
-        if (order.isEmpty) return null //if the order doesn't exist, return null
-        if (deliveries.isEmpty()) return listOf(order.get()) //if there aren't deliveries associated to that order, return the order directly.
+        val orderOptional = orderRepository.findById(orderID)
+        if (orderOptional.isEmpty) return null //if the order doesn't exist, return null
+
+        val order = orderOptional.get()
+        //TODO: change the return type of find delivery from List<Optional<Delivery>> to Optional<List<Delivery>>
+        if (deliveries.isEmpty()) return listOf(order.toDto()) //if there aren't deliveries associated to that order, return the order directly.
         val orderList = mutableListOf<Order>()
         deliveries.forEach {
             orderList.add(
                 Order(
-                    order.get().buyer,
+                    order.buyer,
                     it.get().products,
-                    Utility.getResultingStatus(order?.get().status!!, it.get().status!!),
+                    Utility.getResultingStatus(order.status!!, it.get().status!!),
                     it.get().shippingAddress
                 )
             )
         }
-        orderList.forEach { it.id = order.get().id }
-        return orderList
+        orderList.forEach { it.id = order.id }
+        return orderList.map { it.toDto() }
     }
 
     /**
@@ -121,49 +126,52 @@ class OrderServiceImpl(
      * For each order, it returns a list of each delivery associated to that order with the corresponding status.
      * @param userID, the id of the user.
      */
-    override fun getOrdersByUser(userID: String): List<List<Order>>? {
-        val orders = orderRepository.findByBuyerId(userID)
-        if (orders.isEmpty()) return null //if the user doesn't exists, return null
+    override fun getOrdersByUser(userID: String): List<List<OrderDTO>>? {
+        val ordersOptional = orderRepository.findByBuyerId(userID)
+        if (ordersOptional.isEmpty) return null //if the user doesn't exists, return null
+
+        val orders = ordersOptional.get()
         val ordersList = mutableListOf<List<Order>>()
         for (order in orders) {
-            val deliveries = deliveryRepository.findByOrderID(order.get().id.toString())
+            val deliveries = deliveryRepository.findByOrderID(order.id.toString())
             if (deliveries.isEmpty()) {
-                ordersList.add(listOf(order.get()))
+                ordersList.add(listOf(order))
                 continue //if there aren't deliveries associated to this order, add the order with its status(PENDING or FAILED)
             }
             val orderList = mutableListOf<Order>()
             deliveries.forEach {
                 orderList.add(
                     Order(
-                        order.get().buyer,
+                        order.buyer,
                         it.get().products,
-                        Utility.getResultingStatus(order?.get().status!!, it.get().status!!),
+                        Utility.getResultingStatus(order.status!!, it.get().status!!),
                         it.get().shippingAddress
                     )
                 )
             }
-            orderList.forEach { it.id = order.get().id }
+            orderList.forEach { it.id = order.id }
             ordersList.add(orderList)
         }
-        return ordersList
+        return ordersList.map { list -> list.map { it.toDto() } }
     }
 
     //TODO: how to ensure transactional operations? cannot update order and deliveries in two distinct moment.
-    override fun cancelOrder(orderID: ObjectId): Optional<Order> {
-        var warehouse: String = "localhost:8084"
+    override fun cancelOrder(orderID: ObjectId): OrderDTO {
+        val warehouse: String = "localhost:8084"
         val restTemplate = RestTemplate()
 
-        val order = orderRepository.findById(orderID)
-        if (order.isEmpty) {
-            return order
+        val orderOptional = orderRepository.findById(orderID)
+        if (orderOptional.isEmpty) {
+            return orderOptional.get().toDto()
         }
-        if (order.get().status == OrderStatus.PAID || order.get().status == OrderStatus.PENDING) {
-            order.get().status = OrderStatus.CANCELED
-            orderRepository.save(order.get())
+        val order = orderOptional.get()
+        if (order.status == OrderStatus.PAID || order.status == OrderStatus.PENDING) {
+            order.status = OrderStatus.CANCELED
+            orderRepository.save(order)
             //Cascade update on the deliveries associated to this order. Note that since the order is in PAID
             //or PENDING status, the associated delivery must be in PENDING status.
-            val deliveries = deliveryRepository.findByOrderID(order.get().id.toString())
-            if (deliveries.isEmpty()) return order //no deliveries associated to this order yet. This means the order is in PENDING.
+            val deliveries = deliveryRepository.findByOrderID(order.id.toString())
+            if (deliveries.isEmpty()) return order.toDto() //no deliveries associated to this order yet. This means the order is in PENDING.
             for (delivery in deliveries) {
                 delivery.get().status = DeliveryStatus.CANCELED
                 deliveryRepository.save(delivery.get())
@@ -172,18 +180,18 @@ class OrderServiceImpl(
                 //Inform the warehouse that the delivery is canceled, so products must be restored
                 val result: Unit = RestTemplate().delete(
                     "http://${warehouse}/warehouse/orders",
-                    DeliveryListDTO(order.get().id, deliveries.map { it.get().toDto() })
+                    DeliveryListDTO(order.id, deliveries.map { it.get().toDto() })
                 )
-            } catch(e: Exception){
-                println("OrderService: $e, cannot contact the warehouse service.")
+            } catch (e: Exception) {
+                println("OrderService.cancelOrder: $e, cannot contact the warehouse service.")
                 //TODO: need to rollback or inform the warehouse to delete those products!
             }
 
-            println("OrderService: Order ${order.get().id} canceled!")
+            println("OrderService.cancelOrder: Order ${order.id} canceled!")
         } else {
-            println("OrderService: Cannot cancel the order ${order.get().id}!")
+            println("OrderService.cancelOrder: Cannot cancel the order ${order.id}!")
         }
-        return order
+        return order.toDto()
     }
 
     /**
@@ -195,47 +203,54 @@ class OrderServiceImpl(
     override fun checkWallet(order: Order): String? {
         val wallet: String = "localhost:8083"
         val restTemplate = RestTemplate()
-        var transactionId: String? = null
+        var transactionId: String?
         val transaction =
             TransactionDTO(order.buyer, order.price, Date(), "Order ${order.id}", TransactionStatus.PENDING)
 
-        try{
+        try {
             transactionId = restTemplate.postForObject(
-                "http://${wallet}/wallet/checkavailability/${order.buyer?.id}",
+                "http://${wallet}/wallet/checkavailability/${order.buyer?.id}", //"https://api.mocki.io/v1/f4359b2e"
                 transaction, String::class.java
             )
             transactionId = Gson().fromJson(transactionId, Properties::class.java).getProperty("transactionId")
-        } catch( e: Exception){
-            println("OrderService: $e, cannot contact the wallet service.")
+        } catch (e: Exception) {
+            println("OrderService.checkWallet: $e, cannot contact the wallet service.")
             return null
         }
 
         if (transactionId != null) {
-            println("${transaction.amount} $ locked on the user ${order.buyer?.id}' s wallet")
+            println("OrderService.checkWallet: ${transaction.amount} $ locked on the user ${order.buyer?.id}' s wallet.")
             return transactionId.toString()
         } else {
-            println("The user ${order.buyer?.id}  has not enough money to purchase the order.")
+            println("OrderService.checkWallet: The user ${order.buyer?.id}  has not enough money to purchase the order.")
             return null
         }
     }
 
+    /**
+     * The warehouse service is reached out to verify if there are enough products to satisfy the order.
+     * In this case, a list of deliveries for each warehouse from which the products are coming is retrieved,
+     * and all the deliveries are saved in the database with a PENDING status.
+     * @param order the order that has been requested by catalog service.
+     * @return boolean indicating whether there are enough products and the process can continue, or not.
+     */
     override fun submitOrder(order: Order): Boolean {
         var warehouse: String = "localhost:8084"
         val restTemplate = RestTemplate()
         val deliveryList: DeliveryListDTO?
-        try{
+        try {
             deliveryList = restTemplate.postForObject<DeliveryListDTO>(
-                "http://${warehouse}/warehouse/orders",
+                "http://${warehouse}/warehouse/orders", //"https://api.mocki.io/v1/6ace7eb0",
                 order.toDto(), DeliveryListDTO::class.java
             )
-        } catch (e: Exception){
-            println("OrderService: $e, cannot contact the warehouse service.")
+        } catch (e: Exception) {
+            println("OrderService.submitOrder: $e, cannot contact the warehouse service.")
             return false
             //TODO: Specify that we don't know if there are or not products.
         }
 
         if (deliveryList == null) {
-            println("One or more products are not available in the warehouses.")
+            println("OrderService.submitOrder: One or more products are not available in the warehouses.")
             return false
         } else {
             for (delivery in deliveryList.deliveryList!!) {
@@ -250,27 +265,7 @@ class OrderServiceImpl(
                     )
                 )
             }
-            //After a while update randomly a delivery status for testing
-            GlobalScope.launch { // launch a new coroutine in background and continue
-                while (true) {
-                    delay(100000L)
-                    val deliveries = deliveryRepository.findByOrderID(order.id!!)
-                    if (deliveries.all { it.get().status == DeliveryStatus.DELIVERING }) {
-                        println("All deliveries associated to ${order.id} have been shipped.")
-                        break
-                    }
-                    val randomDelivery = deliveries.get(Random().nextInt(deliveries.size))
-                    if (randomDelivery.get().status == DeliveryStatus.PENDING) randomDelivery.get().status =
-                        DeliveryStatus.DELIVERING
-                    deliveryRepository.save(randomDelivery.get())
-
-                    //CONSEQUENTLY UPDATE THE ORDER
-                    if (order.status == OrderStatus.PAID) {
-                        order.status = OrderStatus.DELIVERING
-                        orderRepository.save(order)
-                    }
-                }
-            }
+            println("OrderService.submitOrder: ${deliveryList.deliveryList!!.size} deliveries have been scheduled for the order ${order.id}.")
             return true
         }
     }
@@ -278,20 +273,26 @@ class OrderServiceImpl(
     override fun completeTransaction(transactionId: String, order: Order): String? {
         val wallet: String = "localhost:8083"
         val restTemplate = RestTemplate()
-        var transactionResult: String?
+        var transactionRes: String?
 
         val transaction =
             TransactionDTO(order.buyer, order.price, Date(), "Order ${order.id}", TransactionStatus.ACCEPTED)
 
         try {
-            transactionResult = restTemplate.postForObject(
-                "http://${wallet}/wallet/performtransaction/$transactionId",
+            transactionRes = restTemplate.postForObject(
+                "http://${wallet}/wallet/performtransaction/$transactionId", //"https://api.mocki.io/v1/f4359b2e",
                 transaction, String::class.java
             )
-        } catch(e: Exception){
-            println("OrderService: $e, cannot contact the wallet service.")
+            transactionRes = Gson().fromJson(transactionRes, Properties::class.java).getProperty("transactionId")
+        } catch (e: Exception) {
+            println("OrderService.completeTransaction: $e, cannot contact the wallet service.")
             return null
         }
-        return transactionResult
+        if (transactionRes != null) {
+            println("OrderService.completeTransaction: The order ${order.id} is confirmed.")
+        } else {
+            println("OrderService.completeTransaction: An error occurred while confirming the transaction ${transactionId}, the order ${order.id} is failed.")
+        }
+        return transactionRes
     }
 }
