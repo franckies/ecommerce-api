@@ -6,5 +6,5 @@ data class ProductDTO(
     val description: String? = null,
     val category: String? = null,
     val picture: String? = null,
-    val currentPrice: Double? = null
+    val currentPrice: Float? = null
 )

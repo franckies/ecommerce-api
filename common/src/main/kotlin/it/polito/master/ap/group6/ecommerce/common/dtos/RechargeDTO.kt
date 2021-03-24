@@ -4,8 +4,8 @@ import java.util.*
 
 data class RechargeDTO(
     val user: UserDTO? = null,
-    val amount: Double? = null,
-    val timestamp: Calendar? = null,
+    val amount: Float? = null,
+    val timestamp: Date? = null,
     val causal: String? = null,
     //TODO: UserDTO who charged is needed?
 )

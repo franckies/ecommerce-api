@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import it.polito.master.ap.group6.ecommerce.common.dtos.*
 import it.polito.master.ap.group6.ecommerce.common.misc.DeliveryStatus
 import it.polito.master.ap.group6.ecommerce.common.misc.OrderStatus
+import it.polito.master.ap.group6.ecommerce.common.misc.UserRole
 import it.polito.master.ap.group6.ecommerce.orderservice.models.Delivery
 import it.polito.master.ap.group6.ecommerce.orderservice.models.Order
 import it.polito.master.ap.group6.ecommerce.orderservice.models.Purchase
@@ -24,18 +25,18 @@ class OrderserviceApplication(
 ) {
     init {
         //clear table
-        orderRepo.deleteAll()
+        /*orderRepo.deleteAll()
         deliveryRepo.deleteAll()
 
         //Populate Order
         val userDTOList = mutableListOf<UserDTO>().apply {
-            add(UserDTO("1239820421", "Francesco", "Semeraro", "Milano", "User"))
-            add(UserDTO("2142109842", "Nicolò", "Chiapello", "Torino", "User"))
+            add(UserDTO("1239820421", "Francesco", "Semeraro", "Milano", "User", UserRole.CUSTOMER.toString()))
+            add(UserDTO("2142109842", "Nicolò", "Chiapello", "Torino", "User", UserRole.CUSTOMER.toString()))
         }
         val productList = mutableListOf<ProductDTO>().apply {
-            add(ProductDTO("Umbrella", "Repairs from rain", "Misc", "umbrella_pic", 20f))
-            add(ProductDTO("Shoes", "Black shoes", "Dressing", "shoes_pic", 50f))
-            add(ProductDTO("Tablet", "iPad 2018", "Electronics", "tablet_pic", 300f))
+            add(ProductDTO("sf5321", "Umbrella", "Repairs from rain", "Misc", "umbrella_pic", 20f))
+            add(ProductDTO("sf1221", "Shoes", "Black shoes", "Dressing", "shoes_pic", 50f))
+            add(ProductDTO("sf13321","Tablet", "iPad 2018", "Electronics", "tablet_pic", 300f))
         }
         val purchaseList1 = mutableListOf<Purchase>().apply {
             add(Purchase(productList[0], 2, 15f))
@@ -74,7 +75,7 @@ class OrderserviceApplication(
         val d = DeliveryListDTO(o.toModel().id, testDeliveryList.map { it.toDto() })
         val jsonStringd = Gson().toJson(d)
         println(jsonStringd)
-        deliveryRepo.saveAll(deliveryList)
+        deliveryRepo.saveAll(deliveryList)*/
 
     }
 }

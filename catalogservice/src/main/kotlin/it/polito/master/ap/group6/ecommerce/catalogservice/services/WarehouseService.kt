@@ -24,7 +24,7 @@ import it.polito.master.ap.group6.ecommerce.common.dtos.*
 //======================================================================================================================
 interface WarehouseService {
     fun showProducts(): Optional<ProductListDTO>
-    fun showProductsPerWarehouse(): Optional<ProductAdminListDTO>
+    fun showProductsPerWarehouse(): Optional<ProductListAdminDTO>
     fun createProduct(product: ProductAdminDTO): Optional<ProductDTO>
     fun modifyProduct(productID: String, modified_product: ProductAdminDTO): Optional<ProductDTO>
 }
@@ -70,14 +70,14 @@ class WarehouseServiceImpl(
             return Optional.of(res)
     }
 
-    override fun showProductsPerWarehouse(): Optional<ProductAdminListDTO> {
+    override fun showProductsPerWarehouse(): Optional<ProductListAdminDTO> {
         // ask remotely to the Warehouse microservice
         val url: String = "http://${warehouseservice_url}/warehouse/products/perwarehouse"
-        var res: ProductAdminListDTO? = null
+        var res: ProductListAdminDTO? = null
         try {
             res = RestTemplate().getForObject(
                 url,  // url
-                ProductAdminListDTO::class.java  // responseType
+                ProductListAdminDTO::class.java  // responseType
             )
         } catch (e: ResourceAccessException) {
             System.err.println("Impossible to GET from '$url'")

@@ -2,7 +2,8 @@ package it.polito.master.ap.group6.ecommerce.walletservice.services
 
 import it.polito.master.ap.group6.ecommerce.common.dtos.RechargeDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.TransactionDTO
-import it.polito.master.ap.group6.ecommerce.common.dtos.TransactionStatus
+import it.polito.master.ap.group6.ecommerce.common.dtos.UserDTO
+import it.polito.master.ap.group6.ecommerce.common.misc.TransactionStatus
 import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.Transaction
 import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.Wallet
 import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.toModel
@@ -18,6 +19,7 @@ interface WalletService {
     fun checkTransaction(checkTransaction: TransactionDTO, userID: String): String?
     fun createRecharge(placedRecharge: RechargeDTO, userID: String): String
     fun getWallet(userID: String): Wallet
+    fun createWallet(user: UserDTO): String
 }
 
 /**
@@ -37,7 +39,7 @@ class WalletServiceImpl(
         val wallet = walletRepository.findByUserId(transaction.user?.id!!)
 
 
-        if(transaction.status==TransactionStatus.ACCEPTED){
+        if(transaction.status== TransactionStatus.ACCEPTED){
 
             wallet.transactions?.find{it.id==transactionID}?.status = TransactionStatus.ACCEPTED
 
@@ -112,6 +114,15 @@ class WalletServiceImpl(
 
     override fun getWallet(userID: String): Wallet {
         return walletRepository.findByUserId(userID)
+    }
+
+    override fun createWallet(user: UserDTO): String {
+
+        val wallet = Wallet(null,user,0.0f,null)
+        val walletSaved = walletRepository.save(wallet)
+
+        return walletSaved.id!!
+
     }
 
 

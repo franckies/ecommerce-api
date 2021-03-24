@@ -65,7 +65,7 @@ class WarehouseController(
      * @throws HttpStatus.NOT_FOUND if the remote microservice doesn't respond.
      */
     @GetMapping("/admin/show")
-    fun showProductsPerWarehouse(): ProductAdminListDTO {
+    fun showProductsPerWarehouse(): ProductListAdminDTO {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         println("Received GET on url='${currentRequest?.requestURL}'")

@@ -5,9 +5,7 @@ import it.polito.master.ap.group6.ecommerce.warehouseservice.model.Product
 import it.polito.master.ap.group6.ecommerce.warehouseservice.model.WarehouseStock
 import it.polito.master.ap.group6.ecommerce.warehouseservice.repositories.WarehouseRepository
 import org.bson.types.ObjectId
-import org.springframework.http.ResponseEntity
 import org.springframework.stereotype.Service
-import org.springframework.web.bind.annotation.RequestBody
 
 interface WarehouseService {
 

@@ -2,6 +2,7 @@ package it.polito.master.ap.group6.ecommerce.walletservice.controllers
 
 import it.polito.master.ap.group6.ecommerce.common.dtos.RechargeDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.TransactionDTO
+import it.polito.master.ap.group6.ecommerce.common.dtos.UserDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.WalletDTO
 import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.Transaction
 import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.toDto
@@ -75,4 +76,16 @@ class OrderController(
         return ResponseEntity.ok(wallet.toDto())
     }
 
+    /**
+     * POST a new wallet into the database.
+     * Create a wallet associated to the userDTO
+     * @return ID corresponding to the saved wallet.
+     */
+    @PostMapping("/create")
+    fun createWallet(@RequestBody user: UserDTO): ResponseEntity<String?> {
+
+        val walletID = walletService.createWallet(user)
+        return ResponseEntity.ok(walletID)
+
+    }
 }

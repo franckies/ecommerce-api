@@ -1,7 +1,8 @@
 package it.polito.master.ap.group6.ecommerce.walletservice
 
-import it.polito.master.ap.group6.ecommerce.common.dtos.TransactionStatus
 import it.polito.master.ap.group6.ecommerce.common.dtos.UserDTO
+import it.polito.master.ap.group6.ecommerce.common.misc.TransactionStatus
+import it.polito.master.ap.group6.ecommerce.common.misc.UserRole
 import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.Transaction
 import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.Wallet
 import it.polito.master.ap.group6.ecommerce.walletservice.repositories.TransactionRepository
@@ -20,23 +21,23 @@ class WalletserviceApplication(
 ) {
     init {
         //clear table
-        walletRepo.deleteAll()
+        /*walletRepo.deleteAll()
         transactionRepo.deleteAll()
         val userDTOList = mutableListOf<UserDTO>().apply {
-            add(UserDTO("1239820421", "Francesco", "Semeraro", "Milano", "User"))
-            add(UserDTO("2142109842", "Nicolò", "Chiapello", "Torino", "User"))
+            add(UserDTO("1239820421", "Francesco", "Semeraro", "Milano", "User", UserRole.CUSTOMER.toString()))
+            add(UserDTO("2142109842", "Nicolò", "Chiapello", "Torino", "User", UserRole.CUSTOMER.toString()))
         }
 
 
         val transactionList = mutableListOf<Transaction>().apply {
-            add(Transaction("0000000000",userDTOList[0],21.99, Calendar.getInstance(), "1111111111", TransactionStatus.ACCEPTED))
+            add(Transaction("0000000000",userDTOList[0],21.99f, Date(), "1111111111", TransactionStatus.ACCEPTED))
         }
 
         //populate product table
         val walletList = mutableListOf<Wallet>().apply {
-            add(Wallet("1234567890",userDTOList[0], 30.20, transactionList))
+            add(Wallet("1234567890",userDTOList[0], 30.20f, transactionList))
         }
-        walletRepo.saveAll(walletList)
+        walletRepo.saveAll(walletList)*/
 
     }
 

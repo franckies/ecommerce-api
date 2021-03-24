@@ -16,7 +16,7 @@ data class Product(
     @Id val id: ObjectId? = null,
     val name: String? = null,
     val category: String? = null,
-    val currentPrice: Double? = null,
+    val currentPrice: Float? = null,
     val description: String? = null,
     val picture: String? = null,
     val stock : MutableList<WarehouseStock>? = null

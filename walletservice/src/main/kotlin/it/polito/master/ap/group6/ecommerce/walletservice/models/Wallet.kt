@@ -10,6 +10,6 @@ class Wallet (
     @Id
     var id: String? = null,
     val user: UserDTO? = null,
-    var total: Double? = null,
+    var total: Float? = null,
     val transactions: MutableList<Transaction>? = null
 )
