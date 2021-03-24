@@ -56,9 +56,9 @@ class WalletServiceImpl(
         val url: String = "http://${walletservice_url}/wallet/create"
 
         // submit remotely to the WalletService microservice
-        var wallet_id: Unit? = null
+        var wallet_id: String? = null
         try {
-             wallet_id = RestTemplate().put(
+             wallet_id = RestTemplate().postForObject(
                 url,  // url
                 user_dto,  // request
                 String::class.java  // responseType  //TODO check meaning of this parameter

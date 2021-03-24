@@ -11,7 +11,8 @@ class WarehouseController(val warehouseService: WarehouseService) {
 
     @GetMapping("/warehouse/products/totals")
     fun getProductsTotals(): ProductListDTO? {
-        return warehouseService.getProductsTotals()
+        val productsTotal: ProductListDTO? = warehouseService.getProductsTotals()
+        return productsTotal
     }
 
     @GetMapping("/warehouse/products/perwarehouse")
