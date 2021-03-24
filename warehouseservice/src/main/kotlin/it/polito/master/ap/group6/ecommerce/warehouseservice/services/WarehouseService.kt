@@ -28,14 +28,19 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
         val queriedProducts: List<Product> = warehouseRepository.getProductsTotals()
 
         // Convert result into ProductListDTO
-        val productListDTO = ProductListDTO(products = mutableMapOf<ProductDTO, Int>())
+//        val productListDTO = ProductListDTO(products = mutableMapOf<ProductDTO, Int>())
+        val productListDTO = ProductListDTO(products = mutableListOf())
+
         for (product in queriedProducts) {
             var availableQuantity = 0
             for (st in product.stock!!) {
                 availableQuantity += st.availableQuantity!!
             }
             val pdto = ProductDTO(name = product.name, category = product.category, currentPrice = product.currentPrice)
-            productListDTO.products[pdto] = availableQuantity
+
+//            productListDTO.products[pdto] = availableQuantity
+
+            productListDTO.products.add(ProductQuantityDTO(pdto, availableQuantity))
         }
 
         return productListDTO
