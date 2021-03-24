@@ -25,9 +25,9 @@ class OrderserviceApplication(
 ) {
     init {
         //clear table
-        /*orderRepo.deleteAll()
+        orderRepo.deleteAll()
         deliveryRepo.deleteAll()
-
+        /*
         //Populate Order
         val userDTOList = mutableListOf<UserDTO>().apply {
             add(UserDTO("1239820421", "Francesco", "Semeraro", "Milano", "User", UserRole.CUSTOMER.toString()))

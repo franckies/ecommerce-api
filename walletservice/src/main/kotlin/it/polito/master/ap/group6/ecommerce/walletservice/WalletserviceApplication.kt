@@ -21,9 +21,9 @@ class WalletserviceApplication(
 ) {
     init {
         //clear table
-        /*walletRepo.deleteAll()
+        walletRepo.deleteAll()
         transactionRepo.deleteAll()
-        val userDTOList = mutableListOf<UserDTO>().apply {
+        /*val userDTOList = mutableListOf<UserDTO>().apply {
             add(UserDTO("1239820421", "Francesco", "Semeraro", "Milano", "User", UserRole.CUSTOMER.toString()))
             add(UserDTO("2142109842", "Nicolò", "Chiapello", "Torino", "User", UserRole.CUSTOMER.toString()))
         }

@@ -16,10 +16,9 @@ import javax.servlet.http.HttpServletRequest
 
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.OrderService
-import it.polito.master.ap.group6.ecommerce.common.dtos.PlacedOrderListDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.OrderDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.PlacedOrderDTO
-
+import it.polito.master.ap.group6.ecommerce.common.dtos.ShownOrderListDTO
 
 
 //======================================================================================================================
@@ -66,7 +65,7 @@ class OrderController(
      * @throws HttpStatus.NOT_FOUND if the user doesn't exist or the remote microservice doesn't respond.
      */
     @GetMapping("/{userID}")
-    fun readOrderHistory(@PathVariable("userID") userID: String): PlacedOrderListDTO {
+    fun readOrderHistory(@PathVariable("userID") userID: String): ShownOrderListDTO {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         println("Received GET on url='${currentRequest?.requestURL}'")

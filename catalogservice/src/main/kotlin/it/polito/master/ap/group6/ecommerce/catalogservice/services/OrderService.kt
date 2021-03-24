@@ -25,7 +25,7 @@ import it.polito.master.ap.group6.ecommerce.common.dtos.*
 //======================================================================================================================
 interface OrderService {
     fun createOrder(userID: String, placedOrderDTO: PlacedOrderDTO): Optional<OrderDTO>
-    fun readOrderHistory(userID: String): Optional<PlacedOrderListDTO>
+    fun readOrderHistory(userID: String): Optional<ShownOrderListDTO>
     fun undoOrder(orderID: String): Optional<OrderDTO>
 }
 
@@ -86,7 +86,7 @@ class OrderServiceImpl(
             return Optional.empty()
     }
 
-    override fun readOrderHistory(userID: String): Optional<PlacedOrderListDTO> {
+    override fun readOrderHistory(userID: String): Optional<ShownOrderListDTO> {
         // check if user exists
         val user_id = ObjectId(userID)
         val user = userService.get(user_id)
@@ -94,12 +94,12 @@ class OrderServiceImpl(
             return Optional.empty()
 
         // ask remotely to the Order microservice
-        val url: String = "http://${orderservice_url}/order/orders/${user.get().id}"
-        var res: PlacedOrderListDTO? = null
+        val url: String = "http://${orderservice_url}/order/${user.get().id}/orders"
+        var res: ShownOrderListDTO? = null
         try {
             res = RestTemplate().getForObject(
                 url,  // url
-                PlacedOrderListDTO::class.java  // responseType
+                ShownOrderListDTO::class.java  // responseType
             )
         } catch (e: ResourceAccessException) {
             System.err.println("Impossible to GET from '$url'")

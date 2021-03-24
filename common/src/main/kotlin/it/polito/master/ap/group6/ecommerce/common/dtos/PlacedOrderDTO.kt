@@ -6,6 +6,3 @@ data class PlacedOrderDTO(
     val deliveryAddress : String? = null
 )
 
-data class PlacedOrderListDTO(
-    val placedOrderList : Map<String, List<PurchaseDTO>>? = null
-)

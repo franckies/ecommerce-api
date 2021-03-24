@@ -2,6 +2,8 @@ package it.polito.master.ap.group6.ecommerce.orderservice.controllers
 
 import it.polito.master.ap.group6.ecommerce.common.dtos.OrderDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.PlacedOrderDTO
+import it.polito.master.ap.group6.ecommerce.common.dtos.ShownOrderDTO
+import it.polito.master.ap.group6.ecommerce.common.dtos.ShownOrderListDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.OrderStatus
 import it.polito.master.ap.group6.ecommerce.orderservice.services.OrderService
 import org.bson.types.ObjectId
@@ -38,14 +40,14 @@ class OrderController(
      * @throws HttpStatus.NOT_FOUND if the order doesn't exist.
      */
     @GetMapping("/orders/{orderID}")
-    fun getOrder(@PathVariable("orderID") orderID: String): List<OrderDTO>? {
+    fun getOrder(@PathVariable("orderID") orderID: String): ShownOrderDTO? {
         println("OrderController.getOrder: information about the order $orderID is requested.")
         try {
             val orderList: List<OrderDTO> = orderService.getOrder(ObjectId(orderID)) ?: run {
                 println("OrderController.getOrder: The order $orderID cannot be found")
                 throw ResponseStatusException(HttpStatus.NOT_FOUND, "The order $orderID cannot be found")
             }
-            return orderList
+            return ShownOrderDTO(orderList)
         } catch (e: IllegalArgumentException) {
             println("OrderController.getOrder: The order $orderID cannot be found.")
             throw ResponseStatusException(HttpStatus.NOT_FOUND, "The order $orderID cannot be found")
@@ -58,13 +60,13 @@ class OrderController(
      * @throws HttpStatus.NOT_FOUND if the user doesn't exists.
      */
     @GetMapping("/{userID}/orders/")
-    fun getOrdersByUser(@PathVariable("userID") userID: String): List<List<OrderDTO>>? {
+    fun getOrdersByUser(@PathVariable("userID") userID: String): ShownOrderListDTO? {
         println("OrderController.getOrderByUser: information about the orders of the user $userID is requested.")
         val ordersList: List<List<OrderDTO>> = orderService.getOrdersByUser(userID) ?: run {
             println("OrderController.getOrderByUser: The user $userID cannot be found.")
             throw ResponseStatusException(HttpStatus.NOT_FOUND, "The user $userID cannot be found")
         }
-        return ordersList
+        return ShownOrderListDTO(ordersList)
     }
 
     /**
