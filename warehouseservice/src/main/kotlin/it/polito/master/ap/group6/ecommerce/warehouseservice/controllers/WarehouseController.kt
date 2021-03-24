@@ -1,13 +1,7 @@
 package it.polito.master.ap.group6.ecommerce.warehouseservice.controllers
 
 import it.polito.master.ap.group6.ecommerce.common.dtos.*
-import it.polito.master.ap.group6.ecommerce.warehouseservice.WarehouseserviceApplication
-import it.polito.master.ap.group6.ecommerce.warehouseservice.model.Product
 import it.polito.master.ap.group6.ecommerce.warehouseservice.services.WarehouseService
-//import it.polito.master.ap.group6.ecommerce.warehouseservice.model.Warehouse
-//import it.polito.master.ap.group6.ecommerce.warehouseservice.repositories.WarehouseRepository
-//import it.polito.master.ap.group6.ecommerce.warehouseservice.services.WarehouseService
-import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
@@ -36,7 +30,7 @@ class WarehouseController(val warehouseService: WarehouseService) {
     }
 
     @PostMapping("/warehouse/orders")
-    fun getDeliveries(@RequestBody orderDTO: OrderDTO) : DeliveryListDTO {
+    fun getDeliveries(@RequestBody orderDTO: OrderDTO) : DeliveryListDTO? {
         return warehouseService.getDeliveries(orderDTO)
     }
 

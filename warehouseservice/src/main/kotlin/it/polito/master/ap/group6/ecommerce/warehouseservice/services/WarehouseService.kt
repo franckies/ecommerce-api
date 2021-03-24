@@ -16,7 +16,7 @@ interface WarehouseService {
     fun insertNewProductInWarehouse(productAdminDTO: ProductAdminDTO): ProductAdminDTO? // return productAdminDTO if inserted, null otherwise
     fun getProduct(product: ProductDTO): Product?
     fun checkAvailability(orderDTO: OrderDTO): Boolean
-    fun getDeliveries(orderDTO: OrderDTO): DeliveryListDTO
+    fun getDeliveries(orderDTO: OrderDTO): DeliveryListDTO?
     fun updateStocksAfterDeliveriesCancellation(deliveryListDTO: DeliveryListDTO) : Boolean
     fun updateProductInWarehouse(productID:String, productAdminDTO: ProductAdminDTO) : ProductAdminDTO? // return productAdminDTO if updated, null otherwise
 }
@@ -96,12 +96,12 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
         return result
     }
 
-    override fun getDeliveries(orderDTO: OrderDTO) : DeliveryListDTO {
+    override fun getDeliveries(orderDTO: OrderDTO) : DeliveryListDTO? {
 
         // Check if products are available
-        if (checkAvailability(orderDTO) == false) {
-            // throw exception
-            return DeliveryListDTO()
+        if (checkAvailability(orderDTO) == false) {  // throw exception
+            println("Products not available")
+            return null
         }
 
         // Create list of deliveries for each purchase of the order (each purchase contains one product, one product can have associated more than one delivery)
@@ -140,7 +140,6 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
                     deliveryList.add(deliveryDTO)
                 }
             }
-
             productsToUpdate.add(requestedProduct)
         }
 
