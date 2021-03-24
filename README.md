@@ -19,7 +19,7 @@ Admins can add and edit product properties
 Both Customers and Admins already have an account using their email
 is the username. For simplicity this is the only service handling
 authentication.
-####Order Service
+#### Order Service
 It is the core of the system. It stores orders and their status and it is responsible
 of enforcing the rules on orders.
 Orders can be placed only if the customer has enough money in his/her wallet

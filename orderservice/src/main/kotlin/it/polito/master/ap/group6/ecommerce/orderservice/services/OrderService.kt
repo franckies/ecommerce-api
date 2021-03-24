@@ -69,7 +69,7 @@ class OrderServiceImpl(
             return order.toDto() //return if there aren't enough money or the wallet service is down
         }
 
-        //STEP 2: if there are enough money, submit the order
+        //STEP 2: if there are enough money, submit the order and create the needed deliveries in PENDING status
         val orderSubmitted = submitOrder(order)
         if (!orderSubmitted) {
             order.status = OrderStatus.FAILED
@@ -77,7 +77,8 @@ class OrderServiceImpl(
             return order.toDto() //Return if there aren't enough products or the warehouse service is down
         }
 
-        //STEP 3: complete the transaction if the delivery has started and mark order as paid
+        //STEP 3: complete the transaction if the delivery has started and mark order as paid. It also takes
+        //care of canceling all the pending deliveries created in the STEP 2.
         completeTransaction(transactionId, order) ?: run {
             order.status = OrderStatus.FAILED
             orderRepository.save(order)
@@ -87,16 +88,19 @@ class OrderServiceImpl(
         order.status = OrderStatus.PAID
         order = orderRepository.save(order)
 
-        //Start the handler for the deliveries
+        /**
+         * Start the coroutine handling the delivery simulation.
+         * If the order get CANCELED in the PAID status, the coroutine CANCEL all the associated deliveries.
+         */
         deliveryService.startDeliveries(order.id.toString())
 
         return order.toDto()
     }
 
     /**
-     * For a given orderId, getOrder returns a list of orders corresponding to all the deliveries associated to
-     * that order. In this way we have a more fine-grained control of the status of each delivery in the order.
      * @param orderID, the id of the desired order
+     * @return for a given orderId, returns a list of orders corresponding to all the deliveries associated to
+     * that order. In this way we have a more fine-grained control of the status of each delivery in the order.
      */
     override fun getOrder(orderID: ObjectId): List<OrderDTO>? {
         val deliveries = deliveryRepository.findByOrderID(orderID.toString())
@@ -123,8 +127,8 @@ class OrderServiceImpl(
 
     /**
      * For a given user, getOrdersByUser returns all the orders associated to that user.
-     * For each order, it returns a list of each delivery associated to that order with the corresponding status.
      * @param userID, the id of the user.
+     * @return for each order, it returns a list of each delivery associated to that order with the corresponding status.
      */
     override fun getOrdersByUser(userID: String): List<List<OrderDTO>>? {
         val ordersOptional = orderRepository.findByBuyerId(userID)
@@ -166,6 +170,7 @@ class OrderServiceImpl(
         }
         val order = orderOptional.get()
         if (order.status == OrderStatus.PAID || order.status == OrderStatus.PENDING) {
+            //TODO: if it was PENDING, we must inform to NOT perform the recharge!!!
             order.status = OrderStatus.CANCELED
             orderRepository.save(order)
             //Cascade update on the deliveries associated to this order. Note that since the order is in PAID
@@ -183,7 +188,7 @@ class OrderServiceImpl(
                     DeliveryListDTO(order.id, deliveries.map { it.get().toDto() })
                 )
             } catch (e: Exception) {
-                println("OrderService.cancelOrder: $e, cannot contact the warehouse service.")
+                println("OrderService.cancelOrder: [${e.cause}]. Cannot contact the warehouse service to restore the products.")
                 //TODO: need to rollback or inform the warehouse to delete those products!
             }
 
@@ -198,7 +203,8 @@ class OrderServiceImpl(
      * Check if the transaction can be performed, i.e. the user has enough money. The amount will be "Locked" but not
      * yet taken from the user's wallet.
      * @param order, the order corresponding to the transaction that will be created.
-     * @return the Id of the transaction created by WalletService
+     * @return the Id of the transaction created by WalletService, null if the transaction could not be created or
+     * there aren't enough money.
      */
     override fun checkWallet(order: Order): String? {
         val wallet: String = "localhost:8083"
@@ -214,7 +220,7 @@ class OrderServiceImpl(
             )
             transactionId = Gson().fromJson(transactionId, Properties::class.java).getProperty("transactionId")
         } catch (e: Exception) {
-            println("OrderService.checkWallet: $e, cannot contact the wallet service.")
+            println("OrderService.checkWallet: [${e.cause}]. Cannot contact the wallet service to check the availability.")
             return null
         }
 
@@ -244,7 +250,7 @@ class OrderServiceImpl(
                 order.toDto(), DeliveryListDTO::class.java
             )
         } catch (e: Exception) {
-            println("OrderService.submitOrder: $e, cannot contact the warehouse service.")
+            println("OrderService.submitOrder: [${e.cause}]. Cannot contact the warehouse service to retrieve the products.")
             return false
             //TODO: Specify that we don't know if there are or not products.
         }
@@ -270,8 +276,17 @@ class OrderServiceImpl(
         }
     }
 
+    /**
+     * The wallet service is reached out again to complete the transaction started in the STEP 1.
+     * Notice that if this step goes wrong, the method is in charge of CANCELING all the deliveries in the PENDING
+     * status created in the STEP 2 and inform the warehouse service to restore the products.
+     * @param transactionId, the id of the transaction to be completed
+     * @param order, the order associated to the transaction performed
+     * @return the id of the transaction if it is correctly completed, null otherwise.
+     */
     override fun completeTransaction(transactionId: String, order: Order): String? {
         val wallet: String = "localhost:8083"
+        val warehouse: String = "localhost:8084"
         val restTemplate = RestTemplate()
         var transactionRes: String?
 
@@ -285,13 +300,27 @@ class OrderServiceImpl(
             )
             transactionRes = Gson().fromJson(transactionRes, Properties::class.java).getProperty("transactionId")
         } catch (e: Exception) {
-            println("OrderService.completeTransaction: $e, cannot contact the wallet service.")
-            return null
+            println("OrderService.completeTransaction: [${e.cause}]. Cannot contact the wallet service to complete the transaction.")
+            transactionRes = null
         }
         if (transactionRes != null) {
             println("OrderService.completeTransaction: The order ${order.id} is confirmed.")
         } else {
             println("OrderService.completeTransaction: An error occurred while confirming the transaction ${transactionId}, the order ${order.id} is failed.")
+            //Set to CANCELED all the associated deliveries scheduled in the STEP 2
+            val deliveries = deliveryRepository.findByOrderID(order.id!!)
+            deliveries.all { it.get().status == DeliveryStatus.CANCELED }
+            println("OrderService.completeTransaction: All deliveries associated with ${order.id} have been canceled.")
+            try {
+                //Inform the warehouse that the delivery is canceled, so products must be restored
+                val result: Unit = RestTemplate().delete(
+                    "http://${warehouse}/warehouse/orders",
+                    DeliveryListDTO(order.id, deliveries.map { it.get().toDto() })
+                )
+            } catch (e: Exception) {
+                println("OrderService.completeTransaction: [${e.cause}]. Cannot contact the warehouse service to restore the products.")
+                //TODO: need to rollback or inform the warehouse to delete those products!
+            }
         }
         return transactionRes
     }
