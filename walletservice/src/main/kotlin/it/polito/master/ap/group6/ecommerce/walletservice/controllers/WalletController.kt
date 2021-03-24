@@ -41,14 +41,16 @@ class OrderController(
      * @return ID corresponding to the saved transaction.
      */
     @PostMapping("/checkavailability/{userID}")
-    fun checkTransaction(@RequestBody checkTransaction: TransactionDTO, @PathVariable("userID") userID: String): ResponseEntity<String?> {
+    fun checkTransaction(@RequestBody checkTransaction: TransactionDTO, @PathVariable("userID") userID: String): String? {
 
         val transactionID = walletService.checkTransaction(checkTransaction,userID)
 
         if (transactionID!=null)
-            return ResponseEntity.ok(transactionID!!)
+            return transactionID
+            //return ResponseEntity.ok(transactionID!!)
         else
-            return ResponseEntity.ok("")
+            return null
+            //return ResponseEntity.ok("")
             TODO("HOW TO RETURN NULL??")
 
     }

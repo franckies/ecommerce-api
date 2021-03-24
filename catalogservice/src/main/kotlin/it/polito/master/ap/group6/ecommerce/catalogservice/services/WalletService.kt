@@ -61,7 +61,7 @@ class WalletServiceImpl(
              wallet_id = RestTemplate().postForObject(
                 url,  // url
                 user_dto,  // request
-                String::class.java  // responseType  //TODO check meaning of this parameter
+                String::class.java  // responseType
             )
         } catch (e: ResourceAccessException) {
             System.err.println("Impossible to PUT on '$url' the object:\n$user_dto")
@@ -108,7 +108,7 @@ class WalletServiceImpl(
             return false
 
         // submit remotely to the WalletService microservice
-        val url: String = "http://${walletservice_url}/wallet/${user.get().id}"
+        val url: String = "http://${walletservice_url}/wallet/recharge/${user.get().id}"
         var transaction_id: String? = null
         try {
             transaction_id = RestTemplate().postForObject(

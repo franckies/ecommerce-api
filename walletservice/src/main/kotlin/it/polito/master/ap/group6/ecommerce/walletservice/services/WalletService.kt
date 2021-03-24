@@ -118,7 +118,7 @@ class WalletServiceImpl(
 
     override fun createWallet(user: UserDTO): String {
 
-        val wallet = Wallet(null,user,0.0f,null)
+        val wallet = Wallet(null,user,0.0f, mutableListOf<Transaction>())
         val walletSaved = walletRepository.save(wallet)
 
         return walletSaved.id!!

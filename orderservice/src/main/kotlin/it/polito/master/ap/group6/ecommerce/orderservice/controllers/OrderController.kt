@@ -59,7 +59,7 @@ class OrderController(
      * @return A list of the DTOs corresponding to the orders of the user.
      * @throws HttpStatus.NOT_FOUND if the user doesn't exists.
      */
-    @GetMapping("/{userID}/orders/")
+    @GetMapping("/{userID}/orders")
     fun getOrdersByUser(@PathVariable("userID") userID: String): ShownOrderListDTO? {
         println("OrderController.getOrderByUser: information about the orders of the user $userID is requested.")
         val ordersList: List<List<OrderDTO>> = orderService.getOrdersByUser(userID) ?: run {

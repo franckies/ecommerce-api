@@ -218,7 +218,8 @@ class OrderServiceImpl(
                 "http://${wallet}/wallet/checkavailability/${order.buyer?.id}", //"https://api.mocki.io/v1/f4359b2e"
                 transaction, String::class.java
             )
-            transactionId = Gson().fromJson(transactionId, Properties::class.java).getProperty("transactionId")
+            //if (transactionId != null)
+                //transactionId = Gson().fromJson(transactionId, Properties::class.java).getProperty("transactionId")
         } catch (e: Exception) {
             println("OrderService.checkWallet: [${e.cause}]. Cannot contact the wallet service to check the availability.")
             return null
@@ -298,7 +299,7 @@ class OrderServiceImpl(
                 "http://${wallet}/wallet/performtransaction/$transactionId", //"https://api.mocki.io/v1/f4359b2e",
                 transaction, String::class.java
             )
-            transactionRes = Gson().fromJson(transactionRes, Properties::class.java).getProperty("transactionId")
+            //transactionRes = Gson().fromJson(transactionRes, Properties::class.java).getProperty("transactionId")
         } catch (e: Exception) {
             println("OrderService.completeTransaction: [${e.cause}]. Cannot contact the wallet service to complete the transaction.")
             transactionRes = null
