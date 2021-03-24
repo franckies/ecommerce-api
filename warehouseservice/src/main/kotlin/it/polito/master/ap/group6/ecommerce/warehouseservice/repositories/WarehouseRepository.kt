@@ -15,10 +15,10 @@ interface WarehouseRepository: MongoRepository<Product, String> {
 //    @Query("{ 'currentPrice' : { \$gt: ?0, \$lt: ?1 } }")
 //    fun findProductBetween(priceGT: Double, priceLT: Double): List<Product>?
 
-    @Query(value="{ }", fields = "{'_id':0}")
+    @Query(value="{ }", fields = "{}")
     fun getProductsTotals() : List<Product>
 
-    @Query(value="{ }", fields = "{'_id':0}")
+    @Query(value="{ }", fields = "{}")
     fun getProductsPerWarehouse() : List<Product>
 
 //    @Query(value="{'name' : ?0 , 'category' : ?1 }")

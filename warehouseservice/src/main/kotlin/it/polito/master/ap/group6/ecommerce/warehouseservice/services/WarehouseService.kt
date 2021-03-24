@@ -36,8 +36,7 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
             for (st in product.stock!!) {
                 availableQuantity += st.availableQuantity!!
             }
-            val pdto = ProductDTO(name = product.name, category = product.category, currentPrice = product.currentPrice)
-
+            val pdto = ProductDTO(id = product.id.toString(), name = product.name, category = product.category, currentPrice = product.currentPrice)
 //            productListDTO.products[pdto] = availableQuantity
 
             productListDTO.products.add(ProductQuantityDTO(pdto, availableQuantity))
@@ -54,7 +53,7 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
         // Convert result into ProductListAdminDTO
         val productListP = mutableListOf<ProductAdminDTO>()
         for (product in queriedProducts) {
-            val pdto = ProductDTO(name = product.name, category = product.category, currentPrice = product.currentPrice)
+            val pdto = ProductDTO(id = product.id.toString(), name = product.name, category = product.category, currentPrice = product.currentPrice)
             for (st in product.stock!!) {
                 val productAdminDTO = ProductAdminDTO(
                     product = pdto,

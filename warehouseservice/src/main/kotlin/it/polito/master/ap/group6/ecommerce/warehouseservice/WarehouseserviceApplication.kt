@@ -30,8 +30,8 @@ fun populate_collection(warehouseRepository: WarehouseRepository) {
                 category = "Tech",
                 currentPrice = 500.0f,
                 stock = mutableListOf<WarehouseStock>(
-                    WarehouseStock(warehouseName = "w1", availableQuantity = 100, alarmLevel = 2),
-                    WarehouseStock(warehouseName = "w3", availableQuantity = 250, alarmLevel = 1)
+                    WarehouseStock(warehouseName = "w1", warehouseAddress = "via Roma", availableQuantity = 100, alarmLevel = 2),
+                    WarehouseStock(warehouseName = "w3", warehouseAddress = "via Milano", availableQuantity = 250, alarmLevel = 1)
                 )
             )
         )
@@ -41,8 +41,8 @@ fun populate_collection(warehouseRepository: WarehouseRepository) {
                 category = "Tech",
                 currentPrice = 200.0f,
                 stock = mutableListOf<WarehouseStock>(
-                    WarehouseStock(warehouseName = "w1", availableQuantity = 50, alarmLevel = 2),
-                    WarehouseStock(warehouseName = "w2", availableQuantity = 100, alarmLevel = 1)
+                    WarehouseStock(warehouseName = "w1", warehouseAddress = "via Roma", availableQuantity = 50, alarmLevel = 2),
+                    WarehouseStock(warehouseName = "w2", warehouseAddress = "via Torino", availableQuantity = 100, alarmLevel = 1)
                 )
             )
         )
@@ -52,8 +52,8 @@ fun populate_collection(warehouseRepository: WarehouseRepository) {
                 category = "Wearing",
                 currentPrice = 500.0f,
                 stock = mutableListOf<WarehouseStock>(
-                    WarehouseStock(warehouseName = "w2", availableQuantity = 30, alarmLevel = 2),
-                    WarehouseStock(warehouseName = "w3", availableQuantity = 40, alarmLevel = 1)
+                    WarehouseStock(warehouseName = "w2", warehouseAddress = "via Torino", availableQuantity = 30, alarmLevel = 2),
+                    WarehouseStock(warehouseName = "w3", warehouseAddress = "via Milano", availableQuantity = 40, alarmLevel = 1)
                 )
             )
         )
