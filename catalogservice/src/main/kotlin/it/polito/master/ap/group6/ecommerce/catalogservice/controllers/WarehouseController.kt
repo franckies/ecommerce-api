@@ -64,6 +64,7 @@ class WarehouseController(
      * @return the list of the available products for each warehouse.
      * @throws HttpStatus.NOT_FOUND if the remote microservice doesn't respond.
      */
+    @RolesAllowed("ROLE_ADMIN")
     @GetMapping("/admin/show")
     fun showProductsPerWarehouse(): ProductListAdminDTO {
         // log incoming request
@@ -86,7 +87,7 @@ class WarehouseController(
      * @return the DTO corresponding to the created product.
      * @throws HttpStatus.NOT_FOUND if the remote microservice doesn't respond.
      */
-    @RolesAllowed("ADMIN")
+    @RolesAllowed("ROLE_ADMIN")
     @PostMapping("/admin")
     fun createProduct(@RequestBody newProduct: ProductAdminDTO): ProductDTO {
         // log incoming request
@@ -109,7 +110,7 @@ class WarehouseController(
      * @return the DTO corresponding to the updated product.
      * @throws HttpStatus.NOT_FOUND if the remote microservice doesn't respond.
      */
-    @RolesAllowed("ADMIN")
+    @RolesAllowed("ROLE_ADMIN")
     @PutMapping("/admin/{productID}")
     fun createProduct(@PathVariable("productID") productID: String,
                       @RequestBody modifiedProduct: ProductAdminDTO): ProductDTO {

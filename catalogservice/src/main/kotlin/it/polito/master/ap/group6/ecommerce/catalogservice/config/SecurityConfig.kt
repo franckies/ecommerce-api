@@ -29,12 +29,15 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 class SecurityConfig: WebSecurityConfigurerAdapter() {
 
     override fun configure(http: HttpSecurity) {
+        http.csrf().disable()  // to make work the POST/PUT/DELETE request (it's magic)
+
         // force auth for every method
         http.httpBasic() //select the type of authentication. This is the basic, there are others for microservices
             .and() //specify the rules
             .authorizeRequests()
                 // permit all methods on Warehouse microservice
             .antMatchers("/catalog/products/**").authenticated()
+            //.antMatchers("/catalog/products/admin/**").hasRole("ADMIN")
                 // permit all methods on Order microservice
             .antMatchers("/catalog/orders/**").authenticated()
                 // permit all methods on Wallet microservice
