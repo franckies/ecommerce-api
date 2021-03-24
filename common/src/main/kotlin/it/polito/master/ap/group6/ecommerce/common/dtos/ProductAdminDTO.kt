@@ -7,6 +7,3 @@ data class ProductAdminDTO(
     val warehouseQuantity: Int? = null //quantity of that product in this warehouse
 )
 
-data class ProductAdminListDTO(
-    val productList: List<ProductAdminDTO>? = null
-)
