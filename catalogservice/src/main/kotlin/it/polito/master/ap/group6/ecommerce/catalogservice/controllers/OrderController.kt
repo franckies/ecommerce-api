@@ -86,7 +86,7 @@ class OrderController(
      * @return the DTO corresponding to the cancelled order.
      * @throws HttpStatus.NOT_FOUND if the user doesn't exist or the remote microservice doesn't respond.
      */
-    @DeleteMapping("/{orderID}")
+    @GetMapping("/delete/{orderID}")
     fun undoOrder(@PathVariable("orderID") orderID: String): OrderDTO {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request

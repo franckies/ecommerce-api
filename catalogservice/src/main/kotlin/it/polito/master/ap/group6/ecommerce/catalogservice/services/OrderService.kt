@@ -115,11 +115,13 @@ class OrderServiceImpl(
 
     override fun undoOrder(orderID: String): Optional<OrderDTO> {
         // submit remotely to the Order microservice
-        val url: String = "http://${orderservice_url}/order/orders/$orderID"
-        var res: Unit? = null  //TODO how to force returning an OrderDTO object
+        val url: String = "http://${orderservice_url}/order/delete/$orderID"
+        var res: OrderDTO? = null  //TODO how to force returning an OrderDTO object
         try {
-            res = RestTemplate().delete(
-                url  // url
+            // TODO: change into DELETE
+            res = RestTemplate().getForObject(
+                url,  // url
+                OrderDTO::class.java
             )
         } catch (e: ResourceAccessException) {
             System.err.println("Impossible to DELETE from '$url'")

@@ -183,9 +183,10 @@ class OrderServiceImpl(
             }
             try {
                 //Inform the warehouse that the delivery is canceled, so products must be restored
-                val result: Unit = RestTemplate().delete(
-                    "http://${warehouse}/warehouse/orders",
-                    DeliveryListDTO(order.id, deliveries.map { it.get().toDto() })
+                val result: Boolean? = RestTemplate().postForObject(
+                    "http://${warehouse}/warehouse/orders/restore",
+                    DeliveryListDTO(order.id, deliveries.map { it.get().toDto() }),
+                    Boolean::class.java
                 )
             } catch (e: Exception) {
                 println("OrderService.cancelOrder: [${e.cause}]. Cannot contact the warehouse service to restore the products.")

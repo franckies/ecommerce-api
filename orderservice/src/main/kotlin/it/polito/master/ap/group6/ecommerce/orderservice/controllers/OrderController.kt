@@ -75,7 +75,7 @@ class OrderController(
      * @throws HttpStatus.FORBIDDEN if the order cannot be canceled (i.e. it has been delivered)
      * @throws HttpStatus.NOT_FOUND if the order doesn't exist.
      */
-    @DeleteMapping("orders/{orderID}")
+    @GetMapping("/delete/{orderID}")
     fun cancelOrder(@PathVariable("orderID") orderID: String): OrderDTO? {
         println("OrderController.cancelOrder: the order $orderID is requested to be canceled.")
         try {

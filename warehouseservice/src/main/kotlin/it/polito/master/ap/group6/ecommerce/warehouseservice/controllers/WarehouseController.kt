@@ -35,8 +35,8 @@ class WarehouseController(val warehouseService: WarehouseService) {
         return warehouseService.getDeliveries(orderDTO)
     }
 
-    @DeleteMapping("/warehouse/orders")
-    fun cancelDeliveries(@RequestBody deliveryListDTO: DeliveryListDTO) : Boolean {
+    @PostMapping("/warehouse/orders/restore")
+    fun cancelDeliveries(@RequestBody deliveryListDTO: DeliveryListDTO) : Boolean? {
         return warehouseService.updateStocksAfterDeliveriesCancellation(deliveryListDTO)
     }
 
