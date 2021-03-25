@@ -19,7 +19,10 @@ import java.util.*
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResult
 import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResultType
+import it.polito.master.ap.group6.ecommerce.catalogservice.models.Operation
+import it.polito.master.ap.group6.ecommerce.catalogservice.repositories.OperationRepository
 import it.polito.master.ap.group6.ecommerce.common.dtos.*
+import org.springframework.data.repository.findByIdOrNull
 
 
 //======================================================================================================================
@@ -48,8 +51,12 @@ class OrderServiceImpl(
     @Value("\${application.order_service}") private var orderservice_url: String = "localhost:8082"
 ) : OrderService {
 
-    //------- methods ----------------------------------------------------------
+    //------- attributes -------------------------------------------------------
+    @Autowired
+    lateinit var operationRepository: OperationRepository
 
+
+    //------- methods ----------------------------------------------------------
     override fun createOrder(userID: String, placedOrderDTO: PlacedOrderDTO): ExecutionResult<OrderDTO> {
         // check if user exists
         val user_id = ObjectId(userID)
@@ -57,14 +64,20 @@ class OrderServiceImpl(
         if (user.isEmpty)
             return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "User $userID does not exist")
 
-        // fill information of the user
+        // check data coherence
         if (!_checkDeliveryAddress(userID, placedOrderDTO.deliveryAddress))
             return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "User $userID has not '${placedOrderDTO.deliveryAddress}' as delivery address")
-        val filled_dto = PlacedOrderDTO(
+
+        // initialize SAGA object
+        val filled_dto = PlacedOrderDTO(  // TODO convert to SAGA object
             userID = user.get().id,
             purchaseList = placedOrderDTO.purchaseList,
             deliveryAddress = placedOrderDTO.deliveryAddress  //TODO let the client decide or force by server-side?
         )
+
+        // log SAGA operation
+        val creation_op = Operation(sagaId = null, orderDto = null)  // TODO insert SAGA identifier and formalize the SAGA object
+        operationRepository.save(creation_op)
 
         // submit remotely to the Order microservice
         val url: String = "http://${orderservice_url}/order/orders"
@@ -149,6 +162,15 @@ class OrderServiceImpl(
     }
 
     override fun undoOrder(orderID: String): ExecutionResult<OrderDTO> {
+        // check if exists SAGA for this order
+        val order_id: ObjectId = ObjectId(orderID)
+        val saga_obj = operationRepository.findByIdOrNull(order_id)  // assuming sagaId==orderId
+        if (saga_obj.isEmpty)
+            return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "There is no SAGA for ID $order_id")
+
+        // log SAGA operation
+        operationRepository.deleteBySagaId(order_id)  // TODO understand exact meaning
+
         // submit remotely to the Order microservice
         val url: String = "http://${orderservice_url}/order/delete/$orderID"
         var res: OrderDTO? = null
