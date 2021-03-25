@@ -1,25 +1,36 @@
 package it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous
 
+import it.polito.master.ap.group6.ecommerce.common.dtos.OrderDTO
+
 class Response(
-    val errorId: String? = null,
+    var body: Any? = null,
+    val responseId: ResponseType? = null,
     val message: String? = null
 ) {
     companion object{
         fun notEnoughMoney(): Response {
-            return Response("1000", "The user hasn't enough money to complete the order")
+            return Response(body = null,ResponseType.NO_MONEY, "The user hasn't enough money to complete the order")
         }
         fun productNotAvailable(): Response{
-            return Response("1001", "One or more products in the order are no more available.")
+            return Response(body = null,ResponseType.NO_PRODUCTS, "One or more products in the order are no more available.")
         }
         fun orderCreated(): Response{
-            return Response("1010", "The order has been successfully created!")
+            return Response(body = null,ResponseType.ORDER_CREATED, "The order has been successfully created!")
         }
         fun orderCannotBeFound(): Response{
-            return Response("1011", "The order cannot be found.")
+            return Response(body = null,ResponseType.ORDER_NOT_FOUND, "The order cannot be found.")
         }
         fun userCannotBeFound(): Response{
-            return Response("1100", "The user cannot be found.")
+            return Response(body = null,ResponseType.USER_NOT_FOUND, "The user cannot be found.")
         }
 
     }
+}
+
+enum class ResponseType{
+    NO_MONEY,
+    NO_PRODUCTS,
+    ORDER_CREATED,
+    ORDER_NOT_FOUND,
+    USER_NOT_FOUND
 }

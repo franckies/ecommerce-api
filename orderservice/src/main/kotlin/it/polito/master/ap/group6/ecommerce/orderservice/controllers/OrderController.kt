@@ -5,6 +5,7 @@ import it.polito.master.ap.group6.ecommerce.common.dtos.PlacedOrderDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.ShownOrderDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.ShownOrderListDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.OrderStatus
+import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.ResponseType
 import it.polito.master.ap.group6.ecommerce.orderservice.services.OrderService
 import org.bson.types.ObjectId
 import org.springframework.beans.factory.annotation.Autowired
@@ -30,9 +31,14 @@ class OrderController(
      */
     @PostMapping("/orders")
     //@RolesAllowed("SERVICE") //TODO: check if it is like this
-    fun createOrder(@RequestBody placedOrder: PlacedOrderDTO): OrderDTO? {
-        println("OrderController.createOrder: a new order from the user ${placedOrder.user!!.id} is requested.")
-        return orderService.createOrder(placedOrder)
+    fun createOrder(@RequestBody placedOrder: PlacedOrderDTO): ResponseEntity<OrderDTO?> {
+        println("OrderController.createOrder: a new order from the user ${placedOrder.userID} is requested.")
+        val createdOrder = orderService.createOrder(placedOrder)
+        return when(createdOrder.responseId){
+            ResponseType.ORDER_CREATED -> ResponseEntity(createdOrder.body as OrderDTO, HttpStatus.OK)
+            //ResponseType.NO_PRODUCTS -> ResponseEntity()
+            else ->
+        }
     }
 
     /**
@@ -41,7 +47,7 @@ class OrderController(
      * @throws HttpStatus.NOT_FOUND if the order doesn't exist.
      */
     @GetMapping("/orders/{orderID}")
-    fun getOrder(@PathVariable("orderID") orderID: String): ShownOrderDTO? {
+    fun getOrder(@PathVariable("orderID") orderID: String): ResponseEntity<ShownOrderDTO?> {
         println("OrderController.getOrder: information about the order $orderID is requested.")
         try {
             val orderList: List<OrderDTO> = orderService.getOrder(ObjectId(orderID)) ?: run {
@@ -51,7 +57,7 @@ class OrderController(
             return ShownOrderDTO(orderList)
         } catch (e: IllegalArgumentException) {
             println("OrderController.getOrder: The order $orderID cannot be found.")
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, "The order $orderID cannot be found")
+            return ResponseEntity(null, HttpStatus.NOT_FOUND)
         }
     }
 
