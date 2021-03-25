@@ -30,6 +30,9 @@ class Response(
         fun userWalletFailed(): Response{
             return Response(body = null,ResponseType.USER_WALLET_FAILED, "There are no existing wallet for this userID.")
         }
+        fun userWalletRefund(): Response{
+            return Response(body = null,ResponseType.USER_WALLET_REFUND, "The rollback operation on orderID has been perfomed.")
+        }
 
     }
 }
@@ -41,5 +44,6 @@ enum class ResponseType{
     USER_WALLET_RECHARGE,
     USER_WALLET_TRANSACTION,
     USER_WALLET_NOMONEY,
-    USER_WALLET_CONFIRM
+    USER_WALLET_CONFIRM,
+    USER_WALLET_REFUND
 }

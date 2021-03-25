@@ -27,11 +27,11 @@ class OrderController(
      * Confirm or refuse a transaction according to products availability in the orderService
      * @return ID corresponding to the saved transaction.
      */
-    @PostMapping("/performtransaction/{transactionID}")
-    fun createTransaction(@RequestBody placedTransaction: TransactionDTO?, @PathVariable("transactionID") transactionID: String?): ResponseEntity<String?> {
+    @GetMapping("/performtransaction/{transactionID}")
+    fun createTransaction(@PathVariable("transactionID") transactionID: String?): ResponseEntity<String?> {
 
         println("WalletController.createTransaction: transaction ${transactionID} is requested for confirm/delete")
-        val transactionResult = walletService.createTransaction(placedTransaction,transactionID)
+        val transactionResult = walletService.createTransaction(transactionID)
 
         return when(transactionResult.responseId) {
             ResponseType.USER_WALLET_CONFIRM -> ResponseEntity(transactionResult.body as String, HttpStatus.OK)
@@ -47,14 +47,14 @@ class OrderController(
      * Confirm or refuse a transaction according to products availability in the orderService
      * @return ID corresponding to the saved transaction.
      */
-    @PostMapping("/undo")
-    fun undoTransaction(@RequestBody orderID: String?): ResponseEntity<String?> {
+    @GetMapping("/undo/{orderID}")
+    fun undoTransaction(@PathVariable("orderID") orderID: String?): ResponseEntity<String?> {
 
         println("WalletController.undoTransaction: transaction with order ${orderID} rollback has been issued")
         val transactionResult = walletService.undoTransaction(orderID)
 
         return when(transactionResult.responseId) {
-            ResponseType.USER_WALLET_CONFIRM -> ResponseEntity(transactionResult.body as String, HttpStatus.OK)
+            ResponseType.USER_WALLET_REFUND -> ResponseEntity(transactionResult.body as String, HttpStatus.OK)
             ResponseType.USER_WALLET_FAILED -> ResponseEntity(null, HttpStatus.NOT_FOUND)
 
             else -> ResponseEntity(null, HttpStatus.NOT_FOUND)

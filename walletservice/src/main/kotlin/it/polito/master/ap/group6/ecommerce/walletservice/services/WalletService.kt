@@ -14,7 +14,7 @@ import java.util.*
 
 
 interface WalletService {
-    fun createTransaction(placedtransaction: TransactionDTO?, transactionID: String?): Response
+    fun createTransaction(transactionID: String?): Response
     fun undoTransaction(orderID: String?): Response
     fun checkTransaction(checkTransaction: TransactionDTO?, userID: String?): Response
     fun createRecharge(placedRecharge: RechargeDTO?, userID: String?): Response
@@ -34,34 +34,24 @@ class WalletServiceImpl(
     @Autowired private val transactionRepository: TransactionRepository
 ) : WalletService {
 
-    override fun createTransaction(placedtransaction: TransactionDTO?, transactionID: String?): Response {
+    override fun createTransaction(transactionID: String?): Response {
 
         var res: Response
 
         try {
-            val transaction = placedtransaction?.toModel()
-            val wallet = walletRepository.findByUserId(transaction?.userID!!)
 
+            val transaction = transactionRepository.findById(transactionID!!)
+            val wallet = walletRepository.findByUserId(transaction.userID!!)
 
-            if(transaction.status== TransactionStatus.ACCEPTED){
+            wallet.transactions?.find{it.id==transactionID}?.status = TransactionStatus.ACCEPTED
 
-                wallet.transactions?.find{it.id==transactionID}?.status = TransactionStatus.ACCEPTED
-
-            }
-            else if (transaction.status==TransactionStatus.REFUSED) {
-
-                wallet.total = wallet.total!! + transaction.amount!!
-                wallet.transactions?.find{it.id==transactionID}?.status = TransactionStatus.REFUSED
-
-
-            }
+            transaction.status = TransactionStatus.ACCEPTED
 
             walletRepository.save(wallet)
             val transactionSaved = transactionRepository.save(transaction)
 
             res =  Response.userWalletConfirmTransaction()
             res.body = transactionSaved.id!!
-
 
         }
         catch (e:Exception) {
@@ -92,7 +82,7 @@ class WalletServiceImpl(
             walletRepository.save(wallet)
             val transactionSaved = transactionRepository.save(transaction)
 
-            res =  Response.userWalletConfirmTransaction()
+            res =  Response.userWalletRefund()
             res.body = transactionSaved.id!!
 
 

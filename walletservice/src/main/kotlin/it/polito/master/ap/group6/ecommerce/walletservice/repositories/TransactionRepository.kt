@@ -8,5 +8,6 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface TransactionRepository: MongoRepository<Transaction, ObjectId> {
+    fun findById(id: String): Transaction
     fun findByCausal(id: String): Transaction
 }
