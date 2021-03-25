@@ -4,7 +4,6 @@ import it.polito.master.ap.group6.ecommerce.common.dtos.RechargeDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.TransactionDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.TransactionStatus
 import it.polito.master.ap.group6.ecommerce.walletservice.miscellaneous.Response
-import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.Transaction
 import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.Wallet
 import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.toModel
 import it.polito.master.ap.group6.ecommerce.walletservice.repositories.TransactionRepository
@@ -16,6 +15,7 @@ import java.util.*
 
 interface WalletService {
     fun createTransaction(placedtransaction: TransactionDTO?, transactionID: String?): Response
+    fun undoTransaction(orderID: String?): Response
     fun checkTransaction(checkTransaction: TransactionDTO?, userID: String?): Response
     fun createRecharge(placedRecharge: RechargeDTO?, userID: String?): Response
     fun getWallet(userID: String?): Response
@@ -53,6 +53,39 @@ class WalletServiceImpl(
                 wallet.total = wallet.total!! + transaction.amount!!
                 wallet.transactions?.find{it.id==transactionID}?.status = TransactionStatus.REFUSED
 
+
+            }
+
+            walletRepository.save(wallet)
+            val transactionSaved = transactionRepository.save(transaction)
+
+            res =  Response.userWalletConfirmTransaction()
+            res.body = transactionSaved.id!!
+
+
+        }
+        catch (e:Exception) {
+
+            res =  Response.userWalletFailed()
+
+        }
+
+        return res
+    }
+
+    override fun undoTransaction(orderID: String?): Response {
+
+        var res: Response
+
+        try {
+
+            val transaction = transactionRepository.findByCausal(orderID!!)
+            val wallet = walletRepository.findByUserId(transaction.userID!!)
+
+            if(transaction.status == TransactionStatus.ACCEPTED || transaction.status == TransactionStatus.PENDING){
+
+                wallet.total = wallet.total!! + transaction.amount!!
+                wallet.transactions?.find{it.id==orderID}?.status = TransactionStatus.REFUNDED
 
             }
 
