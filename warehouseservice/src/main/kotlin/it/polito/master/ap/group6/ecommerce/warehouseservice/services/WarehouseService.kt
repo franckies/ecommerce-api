@@ -9,20 +9,21 @@ import org.springframework.stereotype.Service
 
 interface WarehouseService {
 
-    fun getProductsTotals(): ProductListDTO?
-    fun getProductsPerWarehouse(): ProductListAdminDTO?
+    fun getProductsTotals(): ProductListDTO
+    fun getProductsPerWarehouse(): ProductListAdminDTO
     fun insertNewProductInWarehouse(productAdminDTO: ProductAdminDTO): ProductAdminDTO? // return productAdminDTO if inserted, null otherwise
     fun getProduct(product: ProductDTO): Product?
     fun checkAvailability(orderDTO: OrderDTO): Boolean
-    fun getDeliveries(orderDTO: OrderDTO): DeliveryListDTO?
-    fun updateStocksAfterDeliveriesCancellation(deliveryListDTO: DeliveryListDTO) : Boolean
+    fun getDeliveries(orderDTO: OrderDTO): DeliveryListDTO? // return DeliveryList if products are available, null otherwise
+    fun updateStocksAfterDeliveriesCancellation(deliveryListDTO: DeliveryListDTO)
     fun updateProductInWarehouse(productID:String, productAdminDTO: ProductAdminDTO) : ProductAdminDTO? // return productAdminDTO if updated, null otherwise
+    fun getProductByID(productID: String) : Product?
 }
 
 @Service
 class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository) : WarehouseService {
 
-    override fun getProductsTotals(): ProductListDTO? {
+    override fun getProductsTotals(): ProductListDTO {
 
         // Query to MongoDB
         val queriedProducts: List<Product> = warehouseRepository.getProductsTotals()
@@ -39,21 +40,22 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
             val pdto = ProductDTO(id = product.id.toString(), name = product.name, category = product.category, currentPrice = product.currentPrice)
 //            productListDTO.products[pdto] = availableQuantity
 
-            productListDTO.products.add(ProductQuantityDTO(pdto, availableQuantity))
+            productListDTO.products?.add(ProductQuantityDTO(pdto, availableQuantity))
         }
 
         return productListDTO
     }
 
-    override fun getProductsPerWarehouse(): ProductListAdminDTO? {
+    override fun getProductsPerWarehouse(): ProductListAdminDTO {
 
         // Query to MongoDB
         val queriedProducts: List<Product> = warehouseRepository.getProductsPerWarehouse()
 
         // Convert result into ProductListAdminDTO
-        val productListP = mutableListOf<ProductAdminDTO>()
+        val productList = mutableListOf<ProductAdminDTO>()
         for (product in queriedProducts) {
             val pdto = ProductDTO(id = product.id.toString(), name = product.name, category = product.category, currentPrice = product.currentPrice)
+
             for (st in product.stock!!) {
                 val productAdminDTO = ProductAdminDTO(
                     product = pdto,
@@ -61,10 +63,10 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
                     warehouseQuantity = st.availableQuantity!!,
                     alarmLevel = st.alarmLevel!!
                 )
-                productListP.add(productAdminDTO)
+                productList.add(productAdminDTO)
             }
         }
-        val productListAdminDTO = ProductListAdminDTO(productList = productListP)
+        val productListAdminDTO = ProductListAdminDTO(productList = productList)
         return productListAdminDTO
     }
 
@@ -79,6 +81,7 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
         // Convert ProductAdminDTO to Product
         val warehouse = WarehouseStock(
             warehouseName = productAdminDTO.warehouse?.name, warehouseAddress = productAdminDTO.warehouse?.address,
+//            warehouseName = productAdminDTO.warehouseID, warehouseAddress = productAdminDTO.warehouse?.address,
             availableQuantity = productAdminDTO.warehouseQuantity, alarmLevel = productAdminDTO.alarmLevel
         )
         val productToStore = Product(
@@ -113,7 +116,8 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
 
         for (purchase in orderDTO.purchases!!) {
 
-            val requestedProduct = this.getProduct(purchase.product!!)
+//            val requestedProduct = this.getProduct(purchase.product!!)
+            val requestedProduct = this.getProductByID(purchase.productID!!)
             val stockToUpdate = requestedProduct?.stock
 
             var remainingQuantity = purchase.quantity!!
@@ -126,7 +130,8 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
                     // Append delivery for this warehouse
                     val warehouseDTO = WarehouseDTO(name=warehouse.warehouseName, address = warehouse.warehouseAddress)
 //                    val deliveryDTO = DeliveryDTO(warehouseDTO, mapOf( purchase.product!! to remainingQuantity ))
-                    val deliveryDTO = DeliveryDTO(warehouseDTO, orderDTO.purchases)
+//                    val deliveryDTO = DeliveryDTO(warehouseDTO, orderDTO.purchases)
+                    val deliveryDTO = DeliveryDTO(warehouseDTO.name, orderDTO.purchases)
                     deliveryList.add(deliveryDTO)
                     break
 
@@ -138,7 +143,8 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
                     // Append delivery for this warehouse
                     val warehouseDTO = WarehouseDTO(name=warehouse.warehouseName, address = warehouse.warehouseAddress)
 //                    val deliveryDTO = DeliveryDTO(warehouseDTO, mapOf( purchase.product!! to remainingQuantity ))
-                    val deliveryDTO = DeliveryDTO(warehouseDTO, orderDTO.purchases)
+//                    val deliveryDTO = DeliveryDTO(warehouseDTO, orderDTO.purchases)
+                    val deliveryDTO = DeliveryDTO(warehouseDTO.name, orderDTO.purchases)
                     deliveryList.add(deliveryDTO)
                 }
             }
@@ -154,20 +160,24 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
     }
 
     // Assume the products and the corresponding warehouse are actually present in the DB
-    override fun updateStocksAfterDeliveriesCancellation(deliveryListDTO: DeliveryListDTO): Boolean {
+    override fun updateStocksAfterDeliveriesCancellation(deliveryListDTO: DeliveryListDTO) {
         // Check purchases and update stocks in mongoDB
         for (deliveryDTO in deliveryListDTO.deliveryList!!) {
 
-            val warehouseOfOrigin = deliveryDTO.warehouse
+//            val warehouseOfOrigin = deliveryDTO.warehouse
+            val warehouseOfOrigin = deliveryDTO.warehouseID
 
             for (purchase in deliveryDTO.delivery!!) {
 
-                val documentToUpdate = this.getProduct(purchase.product!!) // Assume the product exists
+//                val documentToUpdate = this.getProduct(purchase.product!!) // Assume the product exists
+                val documentToUpdate = this.getProductByID(purchase.productID!!) // Assume the product exists
+
                 val stockToUpdate = documentToUpdate?.stock
 
                 // Update the product of the interested warehouse
                 for (stock in stockToUpdate!!) {
-                    if (stock.warehouseName == warehouseOfOrigin?.name) // Assume name of the warehouse is the primary key
+//                    if (stock.warehouseName == warehouseOfOrigin?.name) // Assume name of the warehouse is the primary key
+                    if (stock.warehouseName == warehouseOfOrigin) // Assume name of the warehouse is the primary key
                     {
                         stock.availableQuantity = stock.availableQuantity!! + purchase.quantity!!
 
@@ -180,16 +190,15 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
                 warehouseRepository.save(documentToUpdate)
             }
         }
-        return true
     }
 
     override fun updateProductInWarehouse(productID: String, productAdminDTO: ProductAdminDTO): ProductAdminDTO? {
 
         val productToUpdate : Product
         try {
-            productToUpdate = warehouseRepository.findById(productID).get() // Assume the product exists
+            productToUpdate = warehouseRepository.findById(productID).get()
         } catch (e : Exception) {
-            println(e)
+            println("Exception on warehouseRepository.findById(productID).get() : product does not exist")
             return null
         }
 
@@ -247,12 +256,18 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
         }
     }
 
+    override fun getProductByID(productID: String) : Product? {
+        val queriedProduct = warehouseRepository.findById(productID)
+        return queriedProduct.get()
+    }
+
     override fun checkAvailability(orderDTO: OrderDTO): Boolean {
 
         var areProductQuantitiesAvailable: Boolean = true
 
         for (purchase in orderDTO.purchases!!) {
-            val requestedProduct = this.getProduct(purchase.product!!) // Assume the product exists
+//            val requestedProduct = this.getProduct(purchase.product!!) // Assume the product exists
+            val requestedProduct = this.getProductByID(purchase.productID!!) // Assume the product exists
 
             val arrayOfQuantities = mutableListOf<Int>()
             (requestedProduct?.stock!!).forEach {
