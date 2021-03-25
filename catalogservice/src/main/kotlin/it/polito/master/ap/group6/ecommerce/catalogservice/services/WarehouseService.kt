@@ -6,16 +6,17 @@
 package it.polito.master.ap.group6.ecommerce.catalogservice.services
 
 //------- external dependencies ------------------------------------------------
-import it.polito.master.ap.group6.ecommerce.catalogservice.models.dtos.toDto
-import org.bson.types.ObjectId
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.client.ResourceAccessException
-import java.util.*
+import org.springframework.web.client.HttpClientErrorException
+import org.springframework.http.HttpStatus
 
 //------- internal dependencies ------------------------------------------------
+import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResult
+import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResultType
 import it.polito.master.ap.group6.ecommerce.common.dtos.*
 
 
@@ -23,10 +24,10 @@ import it.polito.master.ap.group6.ecommerce.common.dtos.*
 //   Abstract declaration
 //======================================================================================================================
 interface WarehouseService {
-    fun showProducts(): Optional<ProductListDTO>
-    fun showProductsPerWarehouse(): Optional<ProductListAdminDTO>
-    fun createProduct(product: ProductAdminDTO): Optional<ProductDTO>
-    fun modifyProduct(productID: String, modified_product: ProductAdminDTO): Optional<ProductDTO>
+    fun showProducts(): ExecutionResult<ProductListDTO>
+    fun showProductsPerWarehouse(): ExecutionResult<ProductListAdminDTO>
+    fun createProduct(product: ProductAdminDTO): ExecutionResult<ProductDTO>
+    fun modifyProduct(productID: String, modified_product: ProductAdminDTO): ExecutionResult<ProductDTO>
 }
 
 
@@ -49,90 +50,142 @@ class WarehouseServiceImpl(
 
     //------- methods ----------------------------------------------------------
 
-    override fun showProducts(): Optional<ProductListDTO> {
+    override fun showProducts(): ExecutionResult<ProductListDTO> {
         // ask remotely to the Warehouse microservice
         val url: String = "http://${warehouseservice_url}/warehouse/products/totals"
         var res: ProductListDTO? = null
         try {
+            print("Performing GET on '$url'... ")
             res = RestTemplate().getForObject(
                 url,  // url
                 ProductListDTO::class.java  // responseType
             )
+            println("done")
         } catch (e: ResourceAccessException) {
-            System.err.println("Impossible to GET from '$url'")
-            return Optional.empty()
+            System.err.println("impossible to reach remote host")
+            return ExecutionResult(code = ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE)
+        } catch (e: HttpClientErrorException) {
+            when (e.statusCode) {
+                HttpStatus.INTERNAL_SERVER_ERROR -> {
+                    System.err.println("Warehouse service had internal errors")
+                    return ExecutionResult(code = ExecutionResultType.SOMEONE_ELSE_PROBLEM)
+                }
+                else -> {
+                    System.err.println("obtained ${e.statusCode}")
+                    return ExecutionResult(code = ExecutionResultType.HTTP_ERROR, http_code = e.statusCode)
+                }
+            }
+        } catch (e: Exception) {
+            System.err.println("encountered exception $e")
+            return ExecutionResult(code = ExecutionResultType.GENERIC_ERROR, message = "Catch exception ${e.message}")
         }
 
         // provide requested outcome
-        if (res == null)
-            return Optional.empty()
-        else
-            return Optional.of(res)
+        return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = res)
     }
 
-    override fun showProductsPerWarehouse(): Optional<ProductListAdminDTO> {
+    override fun showProductsPerWarehouse(): ExecutionResult<ProductListAdminDTO> {
         // ask remotely to the Warehouse microservice
         val url: String = "http://${warehouseservice_url}/warehouse/products/perwarehouse"
         var res: ProductListAdminDTO? = null
         try {
+            print("Performing GET on '$url'... ")
             res = RestTemplate().getForObject(
                 url,  // url
                 ProductListAdminDTO::class.java  // responseType
             )
+            println("done")
         } catch (e: ResourceAccessException) {
-            System.err.println("Impossible to GET from '$url'")
-            return Optional.empty()
+            System.err.println("impossible to reach remote host")
+            return ExecutionResult(code = ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE)
+        } catch (e: HttpClientErrorException) {
+            when (e.statusCode) {
+                HttpStatus.INTERNAL_SERVER_ERROR -> {
+                    System.err.println("Warehouse service had internal errors")
+                    return ExecutionResult(code = ExecutionResultType.SOMEONE_ELSE_PROBLEM)
+                }
+                else -> {
+                    System.err.println("obtained ${e.statusCode}")
+                    return ExecutionResult(code = ExecutionResultType.HTTP_ERROR, http_code = e.statusCode)
+                }
+            }
+        } catch (e: Exception) {
+            System.err.println("encountered exception $e")
+            return ExecutionResult(code = ExecutionResultType.GENERIC_ERROR, message = "Catch exception ${e.message}")
         }
 
         // provide requested outcome
-        if (res == null)
-            return Optional.empty()
-        else
-            return Optional.of(res)
+        return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = res)
     }
 
-    override fun createProduct(new_product: ProductAdminDTO): Optional<ProductDTO> {
+    override fun createProduct(new_product: ProductAdminDTO): ExecutionResult<ProductDTO> {
         // submit remotely to the Warehouse microservice
         val url: String = "http://${warehouseservice_url}/warehouse/products"
         var created_product: ProductDTO? = null
         try {
+            print("Performing POST on '$url'... ")
             created_product = RestTemplate().postForObject(
                 url,  // url
                 new_product,  // request
                 ProductDTO::class.java  // responseType
             )
+            println("done")
         } catch (e: ResourceAccessException) {
-            System.err.println("Impossible to POST on '$url' the object:\n$new_product")
-            return Optional.empty()
+            System.err.println("impossible to reach remote host")
+            return ExecutionResult(code = ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE)
+        } catch (e: HttpClientErrorException) {
+            when (e.statusCode) {
+                HttpStatus.INTERNAL_SERVER_ERROR -> {
+                    System.err.println("Warehouse service had internal errors")
+                    return ExecutionResult(code = ExecutionResultType.SOMEONE_ELSE_PROBLEM)
+                }
+                else -> {
+                    System.err.println("obtained ${e.statusCode}")
+                    return ExecutionResult(code = ExecutionResultType.HTTP_ERROR, http_code = e.statusCode)
+                }
+            }
+        } catch (e: Exception) {
+            System.err.println("encountered exception $e")
+            return ExecutionResult(code = ExecutionResultType.GENERIC_ERROR, message = "Catch exception ${e.message}")
         }
 
         // provide requested outcome
-        if (created_product == null)
-            return Optional.empty()
-        else
-            return Optional.of(created_product)
+        return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = created_product)
     }
 
-    override fun modifyProduct(productID: String, modified_product: ProductAdminDTO): Optional<ProductDTO> {
+    override fun modifyProduct(productID: String, modified_product: ProductAdminDTO): ExecutionResult<ProductDTO> {
         // submit remotely to the Warehouse microservice
         val url: String = "http://${warehouseservice_url}/warehouse/products/${productID}"
-        var updated_product: Unit? = null
+        var updated_product: ProductDTO? = null
         try {
-            updated_product = RestTemplate().put(
+            print("Performing POST on '$url'... ")
+            updated_product = RestTemplate().postForObject(
                 url,  // url
                 modified_product,  // request
-                ProductDTO::class.java  // responseType  //TODO check meaning of this parameter
+                ProductDTO::class.java  // responseType
             )
+            println("done")
         } catch (e: ResourceAccessException) {
-            System.err.println("Impossible to PUT on '$url' the object:\n$updated_product")
-            return Optional.empty()
+            System.err.println("impossible to reach remote host")
+            return ExecutionResult(code = ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE)
+        } catch (e: HttpClientErrorException) {
+            when (e.statusCode) {
+                HttpStatus.INTERNAL_SERVER_ERROR -> {
+                    System.err.println("Warehouse service had internal errors")
+                    return ExecutionResult(code = ExecutionResultType.SOMEONE_ELSE_PROBLEM)
+                }
+                else -> {
+                    System.err.println("obtained ${e.statusCode}")
+                    return ExecutionResult(code = ExecutionResultType.HTTP_ERROR, http_code = e.statusCode)
+                }
+            }
+        } catch (e: Exception) {
+            System.err.println("encountered exception $e")
+            return ExecutionResult(code = ExecutionResultType.GENERIC_ERROR, message = "Catch exception ${e.message}")
         }
 
         // provide requested outcome
-        if (updated_product == null)
-            return Optional.empty()
-        else
-            return Optional.empty()  //TODO return Optional.of(updated_product)
+        return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = updated_product)
     }
 
 }

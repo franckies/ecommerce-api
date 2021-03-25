@@ -11,6 +11,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.security.provisioning.InMemoryUserDetailsManager
 import springfox.documentation.swagger2.annotations.EnableSwagger2
+import org.springframework.context.support.beans
+import java.util.*
 
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.models.User
@@ -19,8 +21,6 @@ import it.polito.master.ap.group6.ecommerce.catalogservice.services.UserService
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.WalletService
 import it.polito.master.ap.group6.ecommerce.common.dtos.RechargeDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.UserRole
-import org.springframework.context.support.beans
-import java.util.*
 
 
 //======================================================================================================================
@@ -40,8 +40,8 @@ class CatalogserviceApplication(
 		val userList = mutableListOf<User>(
 			userService.create("Nicolò", "Chiapello", "nico", "123", "Corso Duca degli Abruzzi"),
 			userService.create("Francesco", "Semeraro", "fra", "456", "Headquarter K1"),
-			userService.create("Andrea", "Biondo", "andre", "789"),
-			userService.create("Raffaele", "Martone", "raffa", "741"),
+			userService.create("Andrea", "Biondo", "andre", "789", "Casa Biondo"),
+			userService.create("Raffaele", "Martone", "raffa", "741", "Porta Susa"),
 			userService.create("Govanni", "Malnati", "giova", "963", role = UserRole.ADMIN)
 		)
 
@@ -49,7 +49,7 @@ class CatalogserviceApplication(
 		userList.forEach { user ->
 			if (user.role == UserRole.CUSTOMER){
 				walletService.createWallet(user)
-				walletService.issueRecharge(user.id!!, RechargeDTO(user.toDto(), 10000f, Date(), "initial recharge"))
+				walletService.issueRecharge(user.id!!, RechargeDTO(user.id, 10_000f, Date(), "initial recharge"))
 			}
 
 		}

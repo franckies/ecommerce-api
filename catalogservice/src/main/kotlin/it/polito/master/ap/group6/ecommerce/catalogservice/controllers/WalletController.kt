@@ -14,11 +14,13 @@ import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
 import javax.servlet.http.HttpServletRequest
+import org.springframework.http.ResponseEntity
 
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.WalletService
 import it.polito.master.ap.group6.ecommerce.common.dtos.RechargeDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.WalletDTO
+import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResultType
 
 
 //======================================================================================================================
@@ -42,7 +44,7 @@ class WalletController(
      * @throws HttpStatus.NOT_FOUND if the user doesn't exist.
      */
     @GetMapping("/{userID}")
-    fun getEconomicInformation(@PathVariable("userID") userID: String): WalletDTO {
+    fun getEconomicInformation(@PathVariable("userID") userID: String): ResponseEntity<WalletDTO> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         println("Received GET on url='${currentRequest?.requestURL}'")
@@ -51,10 +53,16 @@ class WalletController(
         val wallet_dto = walletService.askEconomicInformation(userID)
 
         // check the result
-        if (wallet_dto.isPresent)
-            return wallet_dto.get()
-        else
-            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        return when (wallet_dto.code) {
+            ExecutionResultType.CORRECT_EXECUTION -> ResponseEntity(wallet_dto.body, HttpStatus.OK)
+            ExecutionResultType.GENERIC_ERROR -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.HTTP_ERROR -> ResponseEntity(null, wallet_dto.http_code!!)
+            ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.SOMEONE_ELSE_PROBLEM -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.PAYMENT_REFUSED -> ResponseEntity(null, HttpStatus.PAYMENT_REQUIRED)
+            ExecutionResultType.WITHDRAWAL_REFUSED -> ResponseEntity(null, HttpStatus.CONFLICT)
+            else -> ResponseEntity(wallet_dto.body, HttpStatus.INTERNAL_SERVER_ERROR)
+        }
     }
 
 
@@ -65,19 +73,25 @@ class WalletController(
      */
     @PostMapping("/admin/recharge/{userID}")
     fun issueRecharge(@PathVariable("userID") userID: String,
-                      @RequestBody rechargeDto: RechargeDTO): HttpStatus {
+                      @RequestBody rechargeDto: RechargeDTO): ResponseEntity<String> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         println("Received POST on url='${currentRequest?.requestURL}' with body=${rechargeDto}")
 
         // invoke the business logic
-        val success: Boolean = walletService.issueRecharge(userID, rechargeDto)
+        val transaction_id = walletService.issueRecharge(userID, rechargeDto)
 
         // check the result
-        if (success)
-            return HttpStatus.OK
-        else
-            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        return when (transaction_id.code) {
+            ExecutionResultType.CORRECT_EXECUTION -> ResponseEntity(transaction_id.body, HttpStatus.OK)
+            ExecutionResultType.GENERIC_ERROR -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.HTTP_ERROR -> ResponseEntity(null, transaction_id.http_code!!)
+            ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.SOMEONE_ELSE_PROBLEM -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.PAYMENT_REFUSED -> ResponseEntity(null, HttpStatus.PAYMENT_REQUIRED)
+            ExecutionResultType.WITHDRAWAL_REFUSED -> ResponseEntity(null, HttpStatus.CONFLICT)
+            else -> ResponseEntity(transaction_id.body, HttpStatus.INTERNAL_SERVER_ERROR)
+        }
     }
 
 }

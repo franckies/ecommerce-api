@@ -6,10 +6,6 @@
 package it.polito.master.ap.group6.ecommerce.catalogservice.services
 
 //------- external dependencies ------------------------------------------------
-
-//------- internal dependencies ------------------------------------------------
-import it.polito.master.ap.group6.ecommerce.catalogservice.models.dtos.toDto
-import it.polito.master.ap.group6.ecommerce.common.dtos.*
 import org.bson.types.ObjectId
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -20,14 +16,19 @@ import org.springframework.web.client.ResourceAccessException
 import org.springframework.web.client.RestTemplate
 import java.util.*
 
+//------- internal dependencies ------------------------------------------------
+import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResult
+import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResultType
+import it.polito.master.ap.group6.ecommerce.common.dtos.*
+
 
 //======================================================================================================================
 //   Abstract declaration
 //======================================================================================================================
 interface OrderService {
-    fun createOrder(userID: String, placedOrderDTO: PlacedOrderDTO): Optional<OrderDTO>
-    fun readOrderHistory(userID: String): Optional<ShownOrderListDTO>
-    fun undoOrder(orderID: String): Optional<OrderDTO>
+    fun createOrder(userID: String, placedOrderDTO: PlacedOrderDTO): ExecutionResult<OrderDTO>
+    fun readOrderHistory(userID: String): ExecutionResult<ShownOrderListDTO>
+    fun undoOrder(orderID: String): ExecutionResult<OrderDTO>
 }
 
 
@@ -49,18 +50,18 @@ class OrderServiceImpl(
 
     //------- methods ----------------------------------------------------------
 
-    override fun createOrder(userID: String, placedOrderDTO: PlacedOrderDTO): Optional<OrderDTO> {
+    override fun createOrder(userID: String, placedOrderDTO: PlacedOrderDTO): ExecutionResult<OrderDTO> {
         // check if user exists
         val user_id = ObjectId(userID)
         val user = userService.get(user_id)
         if (user.isEmpty)
-            return Optional.empty()
+            return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "User $userID does not exist")
 
         // fill information of the user
-        if (!checkDeliveryAddress(userID, placedOrderDTO.deliveryAddress))
-            return Optional.empty()
+        if (!_checkDeliveryAddress(userID, placedOrderDTO.deliveryAddress))
+            return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "User $userID has not '${placedOrderDTO.deliveryAddress}' as delivery address")
         val filled_dto = PlacedOrderDTO(
-            user = user.get().toDto(),
+            userID = user.get().id,
             purchaseList = placedOrderDTO.purchaseList,
             deliveryAddress = placedOrderDTO.deliveryAddress  //TODO let the client decide or force by server-side?
         )
@@ -69,88 +70,130 @@ class OrderServiceImpl(
         val url: String = "http://${orderservice_url}/order/orders"
         var order_dto: OrderDTO? = null
         try {
+            print("Performing POST on '$url'... ")
             order_dto = RestTemplate().postForObject(
                 url,  // url
                 filled_dto,  // request
                 OrderDTO::class.java  // responseType
             )
+            println("done")
         } catch (e: ResourceAccessException) {
-            System.err.println("Impossible to POST on '$url' the object:\n$filled_dto")
-            return Optional.empty()
+            System.err.println("impossible to reach remote host")
+            return ExecutionResult(code = ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE)
+        } catch (e: HttpClientErrorException) {
+            when (e.statusCode) {
+                HttpStatus.INTERNAL_SERVER_ERROR -> {
+                    System.err.println("Order service had internal errors")
+                    return ExecutionResult(code = ExecutionResultType.SOMEONE_ELSE_PROBLEM)
+                }
+                HttpStatus.PAYMENT_REQUIRED -> {
+                    System.err.println("Wallet service does not accept the economical transaction")
+                    return ExecutionResult(code = ExecutionResultType.PAYMENT_REFUSED)
+                }
+                HttpStatus.CONFLICT -> {
+                    System.err.println("Warehouse service does not accept the product withdrawal")
+                    return ExecutionResult(code = ExecutionResultType.WITHDRAWAL_REFUSED)
+                }
+                else -> {
+                    System.err.println("obtained ${e.statusCode}")
+                    return ExecutionResult(code = ExecutionResultType.HTTP_ERROR, http_code = e.statusCode)
+                }
+            }
+        } catch (e: Exception) {
+            System.err.println("encountered exception $e")
+            return ExecutionResult(code = ExecutionResultType.GENERIC_ERROR, message = "Catch exception ${e.message}")
         }
 
         // provide requested outcome
-        if (order_dto != null)
-            return Optional.of(order_dto)
-        else
-            return Optional.empty()
+        return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = order_dto)
     }
 
-    override fun readOrderHistory(userID: String): Optional<ShownOrderListDTO> {
+    override fun readOrderHistory(userID: String): ExecutionResult<ShownOrderListDTO> {
         // check if user exists
         val user_id = ObjectId(userID)
         val user = userService.get(user_id)
         if (user.isEmpty)
-            return Optional.empty()
+            return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "User $userID does not exist")
 
         // ask remotely to the Order microservice
         val url: String = "http://${orderservice_url}/order/${user.get().id}/orders"
         var res: ShownOrderListDTO? = null
         try {
+            print("Performing GET on '$url'... ")
             res = RestTemplate().getForObject(
                 url,  // url
                 ShownOrderListDTO::class.java  // responseType
             )
+            println("done")
         } catch (e: ResourceAccessException) {
-            System.err.println("Impossible to GET from '$url'")
-            return Optional.empty()
+            System.err.println("impossible to reach remote host")
+            return ExecutionResult(code = ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE)
+        } catch (e: HttpClientErrorException) {
+            when (e.statusCode) {
+                HttpStatus.INTERNAL_SERVER_ERROR -> {
+                    System.err.println("Order service had internal errors")
+                    return ExecutionResult(code = ExecutionResultType.SOMEONE_ELSE_PROBLEM)
+                }
+                else -> {
+                    System.err.println("obtained ${e.statusCode}")
+                    return ExecutionResult(code = ExecutionResultType.HTTP_ERROR, http_code = e.statusCode)
+                }
+            }
+        } catch (e: Exception) {
+            System.err.println("encountered exception $e")
+            return ExecutionResult(code = ExecutionResultType.GENERIC_ERROR, message = "Catch exception ${e.message}")
         }
 
         // provide requested outcome
-        if (res == null)
-            return Optional.empty()
-        else
-            return Optional.of(res)
+        return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = res)
     }
 
-    override fun undoOrder(orderID: String): Optional<OrderDTO> {
+    override fun undoOrder(orderID: String): ExecutionResult<OrderDTO> {
         // submit remotely to the Order microservice
         val url: String = "http://${orderservice_url}/order/delete/$orderID"
-        var res: OrderDTO? = null  //TODO how to force returning an OrderDTO object
+        var res: OrderDTO? = null
         try {
-            // TODO: change into DELETE
-            res = RestTemplate().getForObject(
+            print("Performing GET on '$url'... ")
+            res = RestTemplate().getForObject(  // TODO: change into DELETE
                 url,  // url
                 OrderDTO::class.java
             )
+            println("done")
         } catch (e: ResourceAccessException) {
-            //TODO the service is not reachable
-            println("Server not reachable")
+            System.err.println("impossible to reach remote host")
+            return ExecutionResult(code = ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE)
         } catch (e: HttpClientErrorException) {
             when (e.statusCode) {
-                HttpStatus.FORBIDDEN -> {
-                    //TODO order service cannot delete the order because it is in delivering or delivered status
+                HttpStatus.INTERNAL_SERVER_ERROR -> {
+                    System.err.println("Order service had internal errors")
+                    return ExecutionResult(code = ExecutionResultType.SOMEONE_ELSE_PROBLEM)
                 }
-                else -> {}//default branch
+                HttpStatus.PAYMENT_REQUIRED -> {
+                    System.err.println("Wallet service does not accept the economical transaction")
+                    return ExecutionResult(code = ExecutionResultType.PAYMENT_REFUSED)
+                }
+                HttpStatus.CONFLICT -> {
+                    System.err.println("Warehouse service does not accept the product withdrawal")
+                    return ExecutionResult(code = ExecutionResultType.WITHDRAWAL_REFUSED)
+                }
+                else -> {
+                    System.err.println("obtained ${e.statusCode}")
+                    return ExecutionResult(code = ExecutionResultType.HTTP_ERROR, http_code = e.statusCode)
+                }
             }
-            System.err.println("Impossible to DELETE from '$url'")
-            return Optional.empty()
         } catch (e: Exception) {
-            //TODO internal server error
-            println("Something went wrong")
+            System.err.println("encountered exception $e")
+            return ExecutionResult(code = ExecutionResultType.GENERIC_ERROR, message = "Catch exception ${e.message}")
         }
 
         // provide requested outcome
-        if (res == null)
-            return Optional.empty()
-        else
-            return Optional.of(res)
+        return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = res)
     }
 
 
     //------- internal facilities ----------------------------------------------
 
-    fun checkDeliveryAddress(userID: String, deliveryAddress: String?): Boolean {
+    private fun _checkDeliveryAddress(userID: String, deliveryAddress: String?): Boolean {
         // check input parameters
         if (deliveryAddress == null)
             return false
