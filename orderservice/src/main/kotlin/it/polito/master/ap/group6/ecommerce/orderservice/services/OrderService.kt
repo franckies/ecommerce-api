@@ -7,6 +7,7 @@ import it.polito.master.ap.group6.ecommerce.common.dtos.TransactionDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.DeliveryStatus
 import it.polito.master.ap.group6.ecommerce.common.misc.OrderStatus
 import it.polito.master.ap.group6.ecommerce.common.misc.TransactionStatus
+import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.Response
 import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.Utility
 import it.polito.master.ap.group6.ecommerce.orderservice.models.Delivery
 import it.polito.master.ap.group6.ecommerce.orderservice.models.Order
@@ -19,10 +20,11 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.client.RestTemplate
+import java.rmi.ServerException
 import java.util.*
 
 interface OrderService {
-    fun createOrder(placedOrder: PlacedOrderDTO): OrderDTO?
+    fun createOrder(placedOrder: PlacedOrderDTO): Response
     fun getOrder(orderID: ObjectId): List<OrderDTO>?
     fun getOrdersByUser(userID: String): List<List<OrderDTO>>?
     fun cancelOrder(orderID: ObjectId): OrderDTO
@@ -55,7 +57,7 @@ class OrderServiceImpl(
      * @param placedOrder, the order placed by the CatalogueService
      * @return an Order instance. It will have as status PAID if it is submitted successfully, FAILED otherwise
      */
-    override fun createOrder(placedOrder: PlacedOrderDTO): OrderDTO? {
+    override fun createOrder(placedOrder: PlacedOrderDTO): Response {
         //Create the order in PENDING status (no checks have been performed yet)
         var order = placedOrder.toModel()
         order.status = OrderStatus.PENDING
@@ -65,7 +67,10 @@ class OrderServiceImpl(
         val transactionId = checkWallet(order) ?: run {
             order.status = OrderStatus.FAILED
             orderRepository.save(order)
-            return order.toDto() //return if there aren't enough money or the wallet service is down
+            val res = Response.notEnoughMoney()
+            res.body = order
+            return res
+            //return order.toDto() //return if there aren't enough money or the wallet service is down
         }
 
         //STEP 2: if there are enough money, submit the order and create the needed deliveries in PENDING status
@@ -73,7 +78,10 @@ class OrderServiceImpl(
         if (!orderSubmitted) {
             order.status = OrderStatus.FAILED
             orderRepository.save(order)
-            return order.toDto() //Return if there aren't enough products or the warehouse service is down
+            val res = Response.productNotAvailable()
+            res.body = order
+            return res
+        //return order.toDto() //Return if there aren't enough products or the warehouse service is down
         }
 
         //STEP 3: complete the transaction if the delivery has started and mark order as paid. It also takes
@@ -81,7 +89,10 @@ class OrderServiceImpl(
         completeTransaction(transactionId, order) ?: run {
             order.status = OrderStatus.FAILED
             orderRepository.save(order)
-            return order.toDto() //return if the transaction fails or the wallet service is down
+            val res = Response.notEnoughMoney()
+            res.body = order
+            return res
+        //return order.toDto() //return if the transaction fails or the wallet service is down
         }
 
         order.status = OrderStatus.PAID
@@ -93,7 +104,9 @@ class OrderServiceImpl(
          */
         deliveryService.startDeliveries(order.id.toString())
 
-        return order.toDto()
+        var res =  Response.orderCreated()
+        res.body = order
+        return res
     }
 
     /**
@@ -161,7 +174,6 @@ class OrderServiceImpl(
     //TODO: how to ensure transactional operations? cannot update order and deliveries in two distinct moment.
     override fun cancelOrder(orderID: ObjectId): OrderDTO {
         val warehouse: String = "localhost:8084"
-        val restTemplate = RestTemplate()
 
         val orderOptional = orderRepository.findById(orderID)
         if (orderOptional.isEmpty) {
@@ -211,7 +223,7 @@ class OrderServiceImpl(
         val restTemplate = RestTemplate()
         var transactionId: String?
         val transaction =
-            TransactionDTO(order.buyer, order.price, Date(), "Order ${order.id}", TransactionStatus.PENDING)
+            TransactionDTO(order.buyer!!.id, order.price, Date(), "Order ${order.id}", TransactionStatus.PENDING)
 
         try {
             transactionId = restTemplate.postForObject(
@@ -266,7 +278,7 @@ class OrderServiceImpl(
                     Delivery(
                         order.id,
                         order.deliveryAddress,
-                        delivery.warehouse,
+                        delivery.warehouseID,
                         delivery.delivery?.map { it.toModel() },
                         DeliveryStatus.PENDING
                     )
@@ -292,7 +304,7 @@ class OrderServiceImpl(
         var transactionRes: String?
 
         val transaction =
-            TransactionDTO(order.buyer, order.price, Date(), "Order ${order.id}", TransactionStatus.ACCEPTED)
+            TransactionDTO(order.buyer!!.id, order.price, Date(), "Order ${order.id}", TransactionStatus.ACCEPTED)
 
         try {
             transactionRes = restTemplate.postForObject(
