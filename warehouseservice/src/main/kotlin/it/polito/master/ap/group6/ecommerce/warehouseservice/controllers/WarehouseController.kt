@@ -40,27 +40,41 @@ class WarehouseController(val warehouseService: WarehouseService) {
     @PostMapping("/warehouse/orders")
     fun getDeliveries(@RequestBody orderDTO: OrderDTO) : ResponseEntity<DeliveryListDTO?> {
         println("WarehouseService.getDeliveries() invoked.")
+        val response : ResponseEntity<DeliveryListDTO?>
         val result = warehouseService.getDeliveries(orderDTO)
-        return if (result!=null) {
-            println("WarehouseService.getDeliveries() : returning OK.")
-            ResponseEntity(result, HttpStatus.OK)
+        if (result==null) {
+            println("WarehouseService.getDeliveries() : returning NOT FOUND.")
+            response = ResponseEntity(null, HttpStatus.NOT_FOUND)
         } else {
-            println("WarehouseService.getDeliveries() : returning CONFLICT.")
-            ResponseEntity(result, HttpStatus.CONFLICT)
+            if (result.deliveryList!=null) {
+                println("WarehouseService.getDeliveries() : returning OK.")
+                response = ResponseEntity(result, HttpStatus.OK)
+            } else {
+                println("WarehouseService.getDeliveries() : returning CONFLICT.")
+                response = ResponseEntity(null, HttpStatus.CONFLICT)
+            }
         }
+        return response
     }
 
     @PostMapping("/warehouse/orders/restore")
-    fun cancelDeliveries(@RequestBody deliveryListDTO: DeliveryListDTO) : ResponseEntity<Boolean> {
+    fun cancelDeliveries(orderID: String?) : ResponseEntity<Boolean> {
         println("WarehouseService.cancelDeliveries() invoked.")
-        warehouseService.updateStocksAfterDeliveriesCancellation(deliveryListDTO)
-        println("WarehouseService.cancelDeliveries() : returning OK ")
-        return ResponseEntity(null, HttpStatus.OK)
+        val res = warehouseService.updateStocksAfterDeliveriesCancellation(orderID!!)
+        if (res==true) {
+            println("WarehouseService.cancelDeliveries() : returning OK ")
+            return ResponseEntity(null, HttpStatus.OK)
+        } else {
+            println("WarehouseService.cancelDeliveries() : returning NOT_ACCEPTABLE ")
+            return ResponseEntity(null, HttpStatus.NOT_ACCEPTABLE)
+        }
     }
 
-    @PutMapping("/warehouse/products")
-    fun updateProductInWarehouse(@RequestBody productAdminDTO: ProductAdminDTO, productID: String) : ResponseEntity<ProductAdminDTO>? {
+    @PostMapping("/warehouse/products/update")
+    fun updateProductInWarehouse(@RequestBody productAdminDTO: ProductAdminDTO, productID: String?) : ResponseEntity<ProductAdminDTO>? {
         println("WarehouseService.updateProductInWarehouse() invoked.")
+        if (productID==null)
+            return ResponseEntity(null, HttpStatus.BAD_REQUEST)
         val result = warehouseService.updateProductInWarehouse(productID, productAdminDTO)
         return if (result!=null) {
             println("WarehouseService.updateProductInWarehouse() : returning OK ")

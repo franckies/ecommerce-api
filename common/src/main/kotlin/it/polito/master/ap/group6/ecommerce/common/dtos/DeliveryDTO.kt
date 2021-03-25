@@ -4,7 +4,7 @@ data class DeliveryDTO(
     //val warehouse: WarehouseDTO? = null,
     val warehouseID: String? = null,
 //    val delivery: Map<ProductDTO,Int>? = null
-    val delivery : List<PurchaseDTO>? = null
+    val purchases : List<PurchaseDTO>? = null
 )
 
 

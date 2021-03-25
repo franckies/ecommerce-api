@@ -89,7 +89,7 @@ For each microservice, there are reported the classes that are defined in the mi
 |`GET /warehouse/products/totals`| response: ProductListDTO |Catalog requests a list of products (overall quantity)|
 |`GET /warehouse/products/perwarehouse`| response: ProductAdminListDTO |Catalog requests a list of products (for each warehouse) |
 |`POST /warehouse/products`| request: ProductAdminDTO response: ProductDTO |Catalog insert a new product in a specific warehouse |
-|`PUT /warehouse/products/{productID}`| request: ProductAdminDTO response: ProductDTO |Catalog modifies a product in a specific warehouse (eventually updating the alarm level) |
+|`POST /warehouse/products/update/{productID}`| request: ProductAdminDTO response: ProductDTO |Catalog modifies a product in a specific warehouse (eventually updating the alarm level) |
 |`POST /warehouse/orders`| request: OrderDTO response: DeliveryListDTO |Order request a new order and receives a list of deliveries|
 |`POST /warehouse/orders/restore`| request: OrderDTO |Order deletes a previously requested order (it has been canceled by the user) |
 #### Order service endpoints
