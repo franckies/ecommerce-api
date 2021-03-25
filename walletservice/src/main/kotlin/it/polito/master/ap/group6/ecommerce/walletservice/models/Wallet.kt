@@ -9,7 +9,8 @@ import org.springframework.data.mongodb.core.mapping.Document
 class Wallet (
     @Id
     var id: String? = null,
-    val user: UserDTO? = null,
+    //val user: UserDTO? = null,
+    val userID: String? = null,
     var total: Float? = null,
     val transactions: MutableList<Transaction>? = null
 )
