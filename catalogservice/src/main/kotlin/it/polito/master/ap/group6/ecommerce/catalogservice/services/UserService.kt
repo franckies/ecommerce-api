@@ -50,8 +50,7 @@ interface UserService {
  */
 @Service
 class UserServiceImpl(
-    @Autowired private val userRepository: UserRepository,
-    //@Autowired private val walletService: WalletService
+    @Autowired private val userRepository: UserRepository
 ) : UserService {
 
     override fun create(

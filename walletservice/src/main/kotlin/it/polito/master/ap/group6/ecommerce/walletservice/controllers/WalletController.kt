@@ -2,13 +2,13 @@ package it.polito.master.ap.group6.ecommerce.walletservice.controllers
 
 import it.polito.master.ap.group6.ecommerce.common.dtos.RechargeDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.TransactionDTO
-import it.polito.master.ap.group6.ecommerce.common.dtos.UserDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.WalletDTO
-import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.Transaction
+import it.polito.master.ap.group6.ecommerce.walletservice.miscellaneous.ResponseType
+import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.Wallet
 import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.toDto
 import it.polito.master.ap.group6.ecommerce.walletservice.services.WalletService
-import org.bson.types.ObjectId
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
@@ -27,11 +27,38 @@ class OrderController(
      * Confirm or refuse a transaction according to products availability in the orderService
      * @return ID corresponding to the saved transaction.
      */
-    @PostMapping("/performtransaction/{transactionID}")
-    fun createTransaction(@RequestBody placedTransaction: TransactionDTO, @PathVariable("transactionID") transactionID: String): ResponseEntity<String?> {
+    @GetMapping("/performtransaction/{transactionID}")
+    fun createTransaction(@PathVariable("transactionID") transactionID: String?): ResponseEntity<String?> {
 
-        val transactionResult = walletService.createTransaction(placedTransaction,transactionID)
-        return ResponseEntity.ok(transactionResult)
+        println("WalletController.createTransaction: transaction ${transactionID} is requested for confirm/delete")
+        val transactionResult = walletService.createTransaction(transactionID)
+
+        return when(transactionResult.responseId) {
+            ResponseType.USER_WALLET_CONFIRM -> ResponseEntity(transactionResult.body as String, HttpStatus.OK)
+            ResponseType.USER_WALLET_FAILED -> ResponseEntity(null, HttpStatus.NOT_FOUND)
+
+            else -> ResponseEntity(null, HttpStatus.NOT_FOUND)
+        }
+
+    }
+
+    /**
+     * POST a transaction into the database.
+     * Confirm or refuse a transaction according to products availability in the orderService
+     * @return ID corresponding to the saved transaction.
+     */
+    @GetMapping("/undo/{orderID}")
+    fun undoTransaction(@PathVariable("orderID") orderID: String?): ResponseEntity<String?> {
+
+        println("WalletController.undoTransaction: transaction with order ${orderID} rollback has been issued")
+        val transactionResult = walletService.undoTransaction(orderID)
+
+        return when(transactionResult.responseId) {
+            ResponseType.USER_WALLET_REFUND -> ResponseEntity(transactionResult.body as String, HttpStatus.OK)
+            ResponseType.USER_WALLET_FAILED -> ResponseEntity(null, HttpStatus.NOT_FOUND)
+
+            else -> ResponseEntity(null, HttpStatus.NOT_FOUND)
+        }
 
     }
 
@@ -41,17 +68,17 @@ class OrderController(
      * @return ID corresponding to the saved transaction.
      */
     @PostMapping("/checkavailability/{userID}")
-    fun checkTransaction(@RequestBody checkTransaction: TransactionDTO, @PathVariable("userID") userID: String): String? {
+    fun checkTransaction(@RequestBody checkTransaction: TransactionDTO?, @PathVariable("userID") userID: String?): ResponseEntity<String?> {
 
+        println("WalletController.checkTransaction: a transaction check has been issued to the user ${userID}")
         val transactionID = walletService.checkTransaction(checkTransaction,userID)
 
-        if (transactionID!=null)
-            return transactionID
-            //return ResponseEntity.ok(transactionID!!)
-        else
-            return null
-            //return ResponseEntity.ok("")
-            TODO("HOW TO RETURN NULL??")
+        return when(transactionID.responseId) {
+            ResponseType.USER_WALLET_NOMONEY -> ResponseEntity(null, HttpStatus.CONFLICT)
+            ResponseType.USER_WALLET_TRANSACTION -> ResponseEntity(transactionID.body as String, HttpStatus.OK)
+
+            else -> ResponseEntity(null, HttpStatus.NOT_FOUND)
+        }
 
     }
 
@@ -61,10 +88,16 @@ class OrderController(
      * @return ID corresponding to the saved transaction.
      */
     @PostMapping("/recharge/{userID}")
-    fun createRecharge(@RequestBody placedRecharge: RechargeDTO, @PathVariable("userID") userID: String): ResponseEntity<String?> {
+    fun createRecharge(@RequestBody placedRecharge: RechargeDTO, @PathVariable("userID") userID: String?): ResponseEntity<String?> {
 
+        println("WalletController.createRecharge: a recharge has been issued to the user ${userID}")
         val transactionID = walletService.createRecharge(placedRecharge,userID)
-        return ResponseEntity.ok(transactionID)
+        return when(transactionID.responseId) {
+            ResponseType.USER_WALLET_RECHARGE -> ResponseEntity(transactionID.body as String, HttpStatus.OK)
+            ResponseType.USER_WALLET_FAILED -> ResponseEntity(null, HttpStatus.NOT_FOUND)
+
+            else -> ResponseEntity(null, HttpStatus.NOT_FOUND)
+        }
 
     }
 
@@ -73,9 +106,16 @@ class OrderController(
      * @return the DTO corresponding to the retrieved wallet.
      */
     @GetMapping("/{userID}")
-    fun getWallet(@PathVariable("userID") userID: String): ResponseEntity<WalletDTO> {
+    fun getWallet(@PathVariable("userID") userID: String?): ResponseEntity<Wallet?> {
+
+        println("WalletController.getWallet: the user ${userID} wallet is requested")
         val wallet = walletService.getWallet(userID)
-        return ResponseEntity.ok(wallet.toDto())
+        return when(wallet.responseId) {
+            ResponseType.USER_WALLET_GET -> ResponseEntity(wallet.body as Wallet, HttpStatus.OK)
+            ResponseType.USER_WALLET_FAILED -> ResponseEntity(null, HttpStatus.NOT_FOUND)
+
+            else -> ResponseEntity(null, HttpStatus.NOT_FOUND)
+        }
     }
 
     /**
@@ -84,10 +124,16 @@ class OrderController(
      * @return ID corresponding to the saved wallet.
      */
     @PostMapping("/create")
-    fun createWallet(@RequestBody user: UserDTO): ResponseEntity<String?> {
+    fun createWallet(@RequestBody userID: String?): ResponseEntity<String?> {
 
-        val walletID = walletService.createWallet(user)
-        return ResponseEntity.ok(walletID)
+        println("WalletController.creteWallet: a new wallet for the user ${userID} is requested")
+        val walletID = walletService.createWallet(userID)
+        return when(walletID.responseId) {
+            ResponseType.USER_WALLET_CREATED -> ResponseEntity(walletID.body as String, HttpStatus.OK)
+            ResponseType.USER_WALLET_FAILED -> ResponseEntity(null, HttpStatus.NOT_ACCEPTABLE)
+
+            else -> ResponseEntity(null, HttpStatus.NOT_FOUND)
+        }
 
     }
 }

@@ -9,17 +9,16 @@ package it.polito.master.ap.group6.ecommerce.catalogservice.controllers
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.*
 import org.springframework.http.HttpStatus
-import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
 import javax.servlet.http.HttpServletRequest
 import javax.annotation.security.RolesAllowed
+import org.springframework.http.ResponseEntity
 
 //------- internal dependencies ------------------------------------------------
+import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResultType
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.WarehouseService
 import it.polito.master.ap.group6.ecommerce.common.dtos.*
-import it.polito.master.ap.group6.ecommerce.common.misc.UserRole
-
 
 
 //======================================================================================================================
@@ -43,7 +42,7 @@ class WarehouseController(
      * @throws HttpStatus.NOT_FOUND if the remote microservice doesn't respond.
      */
     @GetMapping("/show")
-    fun showProducts(): ProductListDTO {
+    fun showProducts(): ResponseEntity<ProductListDTO> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         println("Received GET on url='${currentRequest?.requestURL}'")
@@ -52,10 +51,15 @@ class WarehouseController(
         val products_list = warehouseService.showProducts()
 
         // check the result
-        if (products_list.isPresent)
-            return products_list.get()
-        else
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, "message")
+        return when (products_list.code) {
+            ExecutionResultType.CORRECT_EXECUTION -> ResponseEntity(products_list.body, HttpStatus.OK)
+            ExecutionResultType.GENERIC_ERROR -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.MISSING_IN_DB -> ResponseEntity(null, HttpStatus.NOT_FOUND)
+            ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.SOMEONE_ELSE_PROBLEM -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.HTTP_ERROR -> ResponseEntity(null, products_list.http_code!!)
+            else -> ResponseEntity(products_list.body, HttpStatus.INTERNAL_SERVER_ERROR)
+        }
     }
 
 
@@ -66,7 +70,7 @@ class WarehouseController(
      */
     @RolesAllowed("ROLE_ADMIN")
     @GetMapping("/admin/show")
-    fun showProductsPerWarehouse(): ProductListAdminDTO {
+    fun showProductsPerWarehouse(): ResponseEntity<ProductListAdminDTO> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         println("Received GET on url='${currentRequest?.requestURL}'")
@@ -75,10 +79,17 @@ class WarehouseController(
         val products_list = warehouseService.showProductsPerWarehouse()
 
         // check the result
-        if (products_list.isPresent)
-            return products_list.get()
-        else
-            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        return when (products_list.code) {
+            ExecutionResultType.CORRECT_EXECUTION -> ResponseEntity(products_list.body, HttpStatus.OK)
+            ExecutionResultType.GENERIC_ERROR -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.MISSING_IN_DB -> ResponseEntity(null, HttpStatus.NOT_FOUND)
+            ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.SOMEONE_ELSE_PROBLEM -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.HTTP_ERROR -> ResponseEntity(null, products_list.http_code!!)
+            ExecutionResultType.PAYMENT_REFUSED -> ResponseEntity(null, HttpStatus.PAYMENT_REQUIRED)
+            ExecutionResultType.WITHDRAWAL_REFUSED -> ResponseEntity(null, HttpStatus.CONFLICT)
+            else -> ResponseEntity(products_list.body, HttpStatus.INTERNAL_SERVER_ERROR)
+        }
     }
 
 
@@ -89,7 +100,7 @@ class WarehouseController(
      */
     @RolesAllowed("ROLE_ADMIN")
     @PostMapping("/admin")
-    fun createProduct(@RequestBody newProduct: ProductAdminDTO): ProductDTO {
+    fun createProduct(@RequestBody newProduct: ProductAdminDTO): ResponseEntity<ProductDTO> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         println("Received POST on url='${currentRequest?.requestURL}' with body=${newProduct}")
@@ -98,10 +109,17 @@ class WarehouseController(
         val created_product = warehouseService.createProduct(newProduct)
 
         // check the result
-        if (created_product.isPresent)
-            return created_product.get()
-        else
-            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        return when (created_product.code) {
+            ExecutionResultType.CORRECT_EXECUTION -> ResponseEntity(created_product.body, HttpStatus.OK)
+            ExecutionResultType.GENERIC_ERROR -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.MISSING_IN_DB -> ResponseEntity(null, HttpStatus.NOT_FOUND)
+            ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.SOMEONE_ELSE_PROBLEM -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.HTTP_ERROR -> ResponseEntity(null, created_product.http_code!!)
+            ExecutionResultType.PAYMENT_REFUSED -> ResponseEntity(null, HttpStatus.PAYMENT_REQUIRED)
+            ExecutionResultType.WITHDRAWAL_REFUSED -> ResponseEntity(null, HttpStatus.CONFLICT)
+            else -> ResponseEntity(created_product.body, HttpStatus.INTERNAL_SERVER_ERROR)
+        }
     }
 
 
@@ -112,8 +130,8 @@ class WarehouseController(
      */
     @RolesAllowed("ROLE_ADMIN")
     @PutMapping("/admin/{productID}")
-    fun createProduct(@PathVariable("productID") productID: String,
-                      @RequestBody modifiedProduct: ProductAdminDTO): ProductDTO {
+    fun modifyProduct(@PathVariable("productID") productID: String,
+                      @RequestBody modifiedProduct: ProductAdminDTO): ResponseEntity<ProductDTO> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         println("Received PUT on url='${currentRequest?.requestURL}' with body=${modifiedProduct}")
@@ -122,10 +140,17 @@ class WarehouseController(
         val updated_product = warehouseService.modifyProduct(productID, modifiedProduct)
 
         // check the result
-        if (updated_product.isPresent)
-            return updated_product.get()
-        else
-            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        return when (updated_product.code) {
+            ExecutionResultType.CORRECT_EXECUTION -> ResponseEntity(updated_product.body, HttpStatus.OK)
+            ExecutionResultType.GENERIC_ERROR -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.MISSING_IN_DB -> ResponseEntity(null, HttpStatus.NOT_FOUND)
+            ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.SOMEONE_ELSE_PROBLEM -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.HTTP_ERROR -> ResponseEntity(null, updated_product.http_code!!)
+            ExecutionResultType.PAYMENT_REFUSED -> ResponseEntity(null, HttpStatus.PAYMENT_REQUIRED)
+            ExecutionResultType.WITHDRAWAL_REFUSED -> ResponseEntity(null, HttpStatus.CONFLICT)
+            else -> ResponseEntity(updated_product.body, HttpStatus.INTERNAL_SERVER_ERROR)
+        }
     }
 
 }

@@ -80,9 +80,10 @@ For each microservice, there are reported the classes that are defined in the mi
 |`POST /wallet/create`| request: UserDTO response: WalletID|Catalog creates a new user so that Wallet can create a correspondent entry|
 |`POST /wallet/{userID}`| request: TransactionDTO response: TransactionID|Order insert a new transaction in the `userID`'s wallet|
 |`POST /wallet/checkavailability/{userID}`| request: TransactionDTO response: TransactionID|Order checks for availability to start a new order on `userID`'s wallet|
-|`POST /wallet/performtransaction/{transactionID}`| request: TransactionID response: Boolean|Order insert a new transaction previously checked.|
+|`GET /wallet/performtransaction/{transactionID}`| request: TransactionID response: Boolean|Order insert a new transaction previously checked.|
 |`GET /wallet/{userID}`| response: WalletDTO|Catalog requests`userID`'s wallet and transaction list|
 |`POST /wallet/recharge/{userID}`| request: RechargeDTO|Catalog insert in the `userID`'s wallet a recharge|
+|`GET /wallet/undo/{orderID}`| request: orderID response: transactionID| OrderService refund an order performing a rollback on the transaction.|
 #### Warehouse service endpoints
 |EP|Payload| Description|
 |---|---|---|
@@ -163,11 +164,12 @@ Always catched:
 |`POST /wallet/checkavailability/{userID}`| 200 OK |Everything goes ok, the user has the correct amount of money in the wallet|
 |`POST /wallet/checkavailability/{userID}`| 409 CONFLICT | The user hasn't enough money |
 |`POST /wallet/checkavailability/{userID}`| 404 NOT_FOUND | The wallet doesn't exists for the user|
-|`POST /wallet/performtransaction/{transactionID}`| 200 OK |Everything goes ok, the transaction is confirmed|
-|`POST /wallet/performtransaction/{transactionID}`| 404 NOT_FOUND | The transaction doesn't exist|
-|`POST /wallet/performtransaction/{transactionID}`| 409 CONFLICT | The transaction is not confirmed|
+|`GET /wallet/performtransaction/{transactionID}`| 200 OK |Everything goes ok, the transaction is confirmed|
+|`GET /wallet/performtransaction/{transactionID}`| 404 NOT_FOUND | The transaction doesn't exist|
+|`GET /wallet/performtransaction/{transactionID}`| 409 CONFLICT | The transaction is not confirmed|
 |`GET /wallet/{userID}`| 200 OK |Everything goes ok, the wallet information are retrieved|
 |`GET /wallet/{userID}`|404 NOT_FOUND | The wallet doesn't exists for the user|
 |`POST /wallet/recharge/{userID}`| 200 OK |Everything goes ok, the wallet is recharged|
 |`POST /wallet/recharge/{userID}`| 404 NOT_FOUND | The wallet doesn't exists for the user|
-
+|`GET /wallet/undo/{orderID}`| 404 NOT_FOUND | The order doesn't exists|
+|`GET /wallet/undo/{orderID}`| 200 OK| The order has been refunded|

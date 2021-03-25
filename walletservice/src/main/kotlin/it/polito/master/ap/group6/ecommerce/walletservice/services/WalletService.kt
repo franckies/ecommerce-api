@@ -2,9 +2,8 @@ package it.polito.master.ap.group6.ecommerce.walletservice.services
 
 import it.polito.master.ap.group6.ecommerce.common.dtos.RechargeDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.TransactionDTO
-import it.polito.master.ap.group6.ecommerce.common.dtos.UserDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.TransactionStatus
-import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.Transaction
+import it.polito.master.ap.group6.ecommerce.walletservice.miscellaneous.Response
 import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.Wallet
 import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.toModel
 import it.polito.master.ap.group6.ecommerce.walletservice.repositories.TransactionRepository
@@ -15,11 +14,12 @@ import java.util.*
 
 
 interface WalletService {
-    fun createTransaction(placedtransaction: TransactionDTO, transactionID: String): String
-    fun checkTransaction(checkTransaction: TransactionDTO, userID: String): String?
-    fun createRecharge(placedRecharge: RechargeDTO, userID: String): String
-    fun getWallet(userID: String): Wallet
-    fun createWallet(user: UserDTO): String
+    fun createTransaction(transactionID: String?): Response
+    fun undoTransaction(orderID: String?): Response
+    fun checkTransaction(checkTransaction: TransactionDTO?, userID: String?): Response
+    fun createRecharge(placedRecharge: RechargeDTO?, userID: String?): Response
+    fun getWallet(userID: String?): Response
+    fun createWallet(userID: String?): Response
 }
 
 /**
@@ -33,95 +33,191 @@ class WalletServiceImpl(
     @Autowired private val walletRepository: WalletRepository,
     @Autowired private val transactionRepository: TransactionRepository
 ) : WalletService {
-    override fun createTransaction(placedtransaction: TransactionDTO, transactionID: String): String {
 
-        val transaction = placedtransaction.toModel()
-        val wallet = walletRepository.findByUserId(transaction.user?.id!!)
+    override fun createTransaction(transactionID: String?): Response {
 
+        var res: Response
 
-        if(transaction.status== TransactionStatus.ACCEPTED){
+        try {
+
+            val transaction = transactionRepository.findById(transactionID!!)
+            val wallet = walletRepository.findByUserId(transaction.userID!!)
 
             wallet.transactions?.find{it.id==transactionID}?.status = TransactionStatus.ACCEPTED
 
+            transaction.status = TransactionStatus.ACCEPTED
+
+            walletRepository.save(wallet)
+            val transactionSaved = transactionRepository.save(transaction)
+
+            res =  Response.userWalletConfirmTransaction()
+            res.body = transactionSaved.id!!
+
         }
-        else if (transaction.status==TransactionStatus.REFUSED) {
+        catch (e:Exception) {
+
+            res =  Response.userWalletFailed()
+
+        }
+
+        return res
+    }
+
+    override fun undoTransaction(orderID: String?): Response {
+
+        var res: Response
+
+        try {
+
+            val transaction = transactionRepository.findByCausal(orderID!!)
+            val wallet = walletRepository.findByUserId(transaction.userID!!)
+
+            if(transaction.status == TransactionStatus.ACCEPTED || transaction.status == TransactionStatus.PENDING){
+
+                wallet.total = wallet.total!! + transaction.amount!!
+                wallet.transactions?.find{it.id==orderID}?.status = TransactionStatus.REFUNDED
+
+            }
+
+            walletRepository.save(wallet)
+            val transactionSaved = transactionRepository.save(transaction)
+
+            res =  Response.userWalletRefund()
+            res.body = transactionSaved.id!!
+
+
+        }
+        catch (e:Exception) {
+
+            res =  Response.userWalletFailed()
+
+        }
+
+        return res
+    }
+
+    override fun checkTransaction(checkTransaction: TransactionDTO?, userID: String?): Response {
+
+
+        var res: Response
+
+        try {
+            val wallet = walletRepository.findByUserId(userID!!)
+            val transaction = checkTransaction?.toModel()
+
+
+            if (wallet.total!! >= checkTransaction?.amount!!) {
+
+                val transactionSaved = transactionRepository.save(transaction!!)
+                wallet.total = wallet.total!! - transaction.amount!!
+                wallet.transactions.apply {
+                    this!!.add(transactionSaved)
+                }
+                walletRepository.save(wallet)
+
+                res =  Response.userWalletPostTransaction()
+                res.body = transactionSaved.id!!
+
+            }
+            else {
+
+                transaction?.status = TransactionStatus.REFUSED
+                val transactionSaved = transactionRepository.save(transaction!!)
+                wallet.transactions.apply {
+                    this!!.add(transactionSaved)
+                }
+                walletRepository.save(wallet)
+                res =  Response.userWalletNoMoney()
+
+            }
+        }
+        catch (e:Exception) {
+
+            res =  Response.userWalletFailed()
+
+        }
+
+        return res
+
+
+
+    }
+
+    override fun createRecharge(placedRecharge: RechargeDTO?, userID: String?): Response {
+
+        var res: Response
+
+        try {
+
+            val transaction = placedRecharge?.toModel()
+            val wallet = walletRepository.findByUserId(userID!!)
+            val transactionSaved = transactionRepository.save(transaction!!)
+
+            transaction.status = TransactionStatus.ACCEPTED
 
             wallet.total = wallet.total!! + transaction.amount!!
-            wallet.transactions?.find{it.id==transactionID}?.status = TransactionStatus.REFUSED
 
-
-        }
-
-        walletRepository.save(wallet)
-        val transactionSaved = transactionRepository.save(transaction)
-
-        return transactionSaved.id!!
-
-    }
-
-    override fun checkTransaction(checkTransaction: TransactionDTO, userID: String): String? {
-
-        val wallet = walletRepository.findByUserId(userID)
-        val transaction = checkTransaction.toModel()
-
-
-        if (wallet.total!! >= checkTransaction.amount!!) {
-
-            val transactionSaved = transactionRepository.save(transaction)
-            wallet.total = wallet.total!! - transaction.amount!!
             wallet.transactions.apply {
                 this!!.add(transactionSaved)
             }
+
             walletRepository.save(wallet)
-            return transactionSaved.id!!
+            res =  Response.userWalletRecharge()
+            res.body = transaction.id
 
         }
-        else {
+        catch (e:Exception) {
 
-            transaction.status = TransactionStatus.REFUSED
-            val transactionSaved = transactionRepository.save(transaction)
-            wallet.transactions.apply {
-                this!!.add(transactionSaved)
-            }
-            walletRepository.save(wallet)
-            return null
+            res =  Response.userWalletFailed()
 
         }
 
-
+        return res
 
     }
 
-    override fun createRecharge(placedRecharge: RechargeDTO, userID: String): String {
+    override fun getWallet(userID: String?): Response {
 
-        val transaction = placedRecharge.toModel()
-        val wallet = walletRepository.findByUserId(userID)
-        val transactionSaved = transactionRepository.save(transaction)
+        var res: Response
 
-        transaction.status = TransactionStatus.ACCEPTED
+        try {
 
-        wallet.total = wallet.total!! + transaction.amount!!
+            val wallet = walletRepository.findByUserId(userID!!)
+            res =  Response.userWalletGet()
+            res.body = wallet
 
-        wallet.transactions.apply {
-            this!!.add(transactionSaved)
+        }
+        catch (e:Exception) {
+
+            res =  Response.userWalletFailed()
+
         }
 
-        walletRepository.save(wallet)
-
-        return transactionSaved.id!!
+        return res
 
     }
 
-    override fun getWallet(userID: String): Wallet {
-        return walletRepository.findByUserId(userID)
-    }
+    override fun createWallet(userID: String?): Response {
 
-    override fun createWallet(user: UserDTO): String {
+        var res: Response
 
-        val wallet = Wallet(null,user,0.0f, mutableListOf<Transaction>())
-        val walletSaved = walletRepository.save(wallet)
+        try {
 
-        return walletSaved.id!!
+            walletRepository.findByUserId(userID!!)
+            res =  Response.userWalletCreatedFailed()
+
+        }
+        catch (e:Exception) {
+
+            val wallet = Wallet(null, userID, 0.0f, mutableListOf())
+            val walletSaved = walletRepository.save(wallet)
+            res = Response.userWalletCreated()
+            res.body = walletSaved.id
+
+
+        }
+
+        return res
 
     }
 

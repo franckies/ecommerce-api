@@ -17,7 +17,8 @@ enum class DeliveryStatus {
 enum class TransactionStatus {
     PENDING,
     ACCEPTED,
-    REFUSED
+    REFUSED,
+    REFUNDED
 }
 enum class UserRole {
     CUSTOMER,

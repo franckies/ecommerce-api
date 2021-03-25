@@ -1,10 +1,5 @@
 package it.polito.master.ap.group6.ecommerce.walletservice
 
-import it.polito.master.ap.group6.ecommerce.common.dtos.UserDTO
-import it.polito.master.ap.group6.ecommerce.common.misc.TransactionStatus
-import it.polito.master.ap.group6.ecommerce.common.misc.UserRole
-import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.Transaction
-import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.Wallet
 import it.polito.master.ap.group6.ecommerce.walletservice.repositories.TransactionRepository
 import it.polito.master.ap.group6.ecommerce.walletservice.repositories.WalletRepository
 

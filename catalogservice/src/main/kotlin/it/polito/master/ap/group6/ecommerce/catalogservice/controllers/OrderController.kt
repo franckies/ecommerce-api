@@ -13,12 +13,14 @@ import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
 import javax.servlet.http.HttpServletRequest
+import org.springframework.http.ResponseEntity
 
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.OrderService
 import it.polito.master.ap.group6.ecommerce.common.dtos.OrderDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.PlacedOrderDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.ShownOrderListDTO
+import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResultType
 
 
 //======================================================================================================================
@@ -43,7 +45,7 @@ class OrderController(
      */
     @PostMapping("{userID}")
     fun createOrder(@PathVariable("userID") userID: String,  //TODO enhance by retrieving userID by the logged credentials
-                    @RequestBody placedOrderDTO: PlacedOrderDTO): OrderDTO {
+                    @RequestBody placedOrderDTO: PlacedOrderDTO): ResponseEntity<OrderDTO> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         println("Received POST on url='${currentRequest?.requestURL}' with body=${placedOrderDTO}")
@@ -52,10 +54,16 @@ class OrderController(
         val created_order = orderService.createOrder(userID, placedOrderDTO)
 
         // check the result
-        if (created_order.isPresent)
-            return created_order.get()
-        else
-            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        return when (created_order.code) {
+            ExecutionResultType.CORRECT_EXECUTION -> ResponseEntity(created_order.body, HttpStatus.OK)
+            ExecutionResultType.GENERIC_ERROR -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.HTTP_ERROR -> ResponseEntity(null, created_order.http_code!!)
+            ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.SOMEONE_ELSE_PROBLEM -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.PAYMENT_REFUSED -> ResponseEntity(null, HttpStatus.PAYMENT_REQUIRED)
+            ExecutionResultType.WITHDRAWAL_REFUSED -> ResponseEntity(null, HttpStatus.CONFLICT)
+            else -> ResponseEntity(created_order.body, HttpStatus.INTERNAL_SERVER_ERROR)
+        }
     }
 
 
@@ -65,7 +73,7 @@ class OrderController(
      * @throws HttpStatus.NOT_FOUND if the user doesn't exist or the remote microservice doesn't respond.
      */
     @GetMapping("/{userID}")
-    fun readOrderHistory(@PathVariable("userID") userID: String): ShownOrderListDTO {
+    fun readOrderHistory(@PathVariable("userID") userID: String): ResponseEntity<ShownOrderListDTO?> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         println("Received GET on url='${currentRequest?.requestURL}'")
@@ -74,10 +82,16 @@ class OrderController(
         val placed_order_list_dto = orderService.readOrderHistory(userID)
 
         // check the result
-        if (placed_order_list_dto.isPresent)
-            return placed_order_list_dto.get()
-        else
-            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        return when (placed_order_list_dto.code) {
+            ExecutionResultType.CORRECT_EXECUTION -> ResponseEntity(placed_order_list_dto.body, HttpStatus.OK)
+            ExecutionResultType.GENERIC_ERROR -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.HTTP_ERROR -> ResponseEntity(null, placed_order_list_dto.http_code!!)
+            ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.SOMEONE_ELSE_PROBLEM -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.PAYMENT_REFUSED -> ResponseEntity(null, HttpStatus.PAYMENT_REQUIRED)
+            ExecutionResultType.WITHDRAWAL_REFUSED -> ResponseEntity(null, HttpStatus.CONFLICT)
+            else -> ResponseEntity(placed_order_list_dto.body, HttpStatus.INTERNAL_SERVER_ERROR)
+        }
     }
 
 
@@ -87,7 +101,7 @@ class OrderController(
      * @throws HttpStatus.NOT_FOUND if the user doesn't exist or the remote microservice doesn't respond.
      */
     @GetMapping("/delete/{orderID}")
-    fun undoOrder(@PathVariable("orderID") orderID: String): OrderDTO {
+    fun undoOrder(@PathVariable("orderID") orderID: String): ResponseEntity<OrderDTO> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         println("Received DELETE on url='${currentRequest?.requestURL}'")
@@ -96,10 +110,14 @@ class OrderController(
         val cancelled_order = orderService.undoOrder(orderID)
 
         // check the result
-        if (cancelled_order.isPresent)
-            return cancelled_order.get()
-        else
-            throw ResponseStatusException(HttpStatus.NOT_FOUND)
+        return when (cancelled_order.code) {
+            ExecutionResultType.CORRECT_EXECUTION -> ResponseEntity(cancelled_order.body, HttpStatus.OK)
+            ExecutionResultType.GENERIC_ERROR -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.HTTP_ERROR -> ResponseEntity(null, cancelled_order.http_code!!)
+            ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.SOMEONE_ELSE_PROBLEM -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            else -> ResponseEntity(cancelled_order.body, HttpStatus.INTERNAL_SERVER_ERROR)
+        }
     }
 
 }
