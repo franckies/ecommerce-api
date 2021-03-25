@@ -51,8 +51,11 @@ class WarehouseController(val warehouseService: WarehouseService) {
     }
 
     @PostMapping("/warehouse/orders/restore")
-    fun cancelDeliveries(@RequestBody deliveryListDTO: DeliveryListDTO) : Boolean? {
-        return warehouseService.updateStocksAfterDeliveriesCancellation(deliveryListDTO)
+    fun cancelDeliveries(@RequestBody deliveryListDTO: DeliveryListDTO) : ResponseEntity<Boolean> {
+        println("WarehouseService.cancelDeliveries() invoked.")
+        warehouseService.updateStocksAfterDeliveriesCancellation(deliveryListDTO)
+        println("WarehouseService.cancelDeliveries() : returning OK ")
+        return ResponseEntity(null, HttpStatus.OK)
     }
 
     @PutMapping("/warehouse/products")

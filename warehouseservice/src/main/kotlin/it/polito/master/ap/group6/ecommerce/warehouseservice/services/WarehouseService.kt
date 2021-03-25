@@ -15,7 +15,7 @@ interface WarehouseService {
     fun getProduct(product: ProductDTO): Product?
     fun checkAvailability(orderDTO: OrderDTO): Boolean
     fun getDeliveries(orderDTO: OrderDTO): DeliveryListDTO? // return DeliveryList if products are available, null otherwise
-    fun updateStocksAfterDeliveriesCancellation(deliveryListDTO: DeliveryListDTO) : Boolean
+    fun updateStocksAfterDeliveriesCancellation(deliveryListDTO: DeliveryListDTO)
     fun updateProductInWarehouse(productID:String, productAdminDTO: ProductAdminDTO) : ProductAdminDTO? // return productAdminDTO if updated, null otherwise
     fun getProductByID(productID: String) : Product?
 }
@@ -160,7 +160,7 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
     }
 
     // Assume the products and the corresponding warehouse are actually present in the DB
-    override fun updateStocksAfterDeliveriesCancellation(deliveryListDTO: DeliveryListDTO): Boolean {
+    override fun updateStocksAfterDeliveriesCancellation(deliveryListDTO: DeliveryListDTO) {
         // Check purchases and update stocks in mongoDB
         for (deliveryDTO in deliveryListDTO.deliveryList!!) {
 
@@ -190,7 +190,6 @@ class WarehouseServiceImpl(private val warehouseRepository: WarehouseRepository)
                 warehouseRepository.save(documentToUpdate)
             }
         }
-        return true
     }
 
     override fun updateProductInWarehouse(productID: String, productAdminDTO: ProductAdminDTO): ProductAdminDTO? {
