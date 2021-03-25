@@ -14,10 +14,13 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2
 
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.models.User
+import it.polito.master.ap.group6.ecommerce.catalogservice.models.dtos.toDto
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.UserService
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.WalletService
+import it.polito.master.ap.group6.ecommerce.common.dtos.RechargeDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.UserRole
 import org.springframework.context.support.beans
+import java.util.*
 
 
 //======================================================================================================================
@@ -44,8 +47,11 @@ class CatalogserviceApplication(
 
 		// inform the WalletService
 		userList.forEach { user ->
-			if (user.role == UserRole.CUSTOMER)
+			if (user.role == UserRole.CUSTOMER){
 				walletService.createWallet(user)
+				walletService.issueRecharge(user.id!!, RechargeDTO(user.toDto(), 10000f, Date(), "initial recharge"))
+			}
+
 		}
 	}
 }

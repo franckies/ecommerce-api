@@ -1,7 +1,8 @@
 package it.polito.master.ap.group6.ecommerce.common.dtos
 
 data class DeliveryDTO(
-    val warehouse: WarehouseDTO? = null,
+    //val warehouse: WarehouseDTO? = null,
+    val warehouseID: String? = null,
 //    val delivery: Map<ProductDTO,Int>? = null
     val delivery : List<PurchaseDTO>? = null
 )
@@ -12,5 +13,4 @@ data class DeliveryListDTO(
     val orderID : String? = null,
 //    val deliveryList: MutableList<DeliveryDTO>? = null
     val deliveryList: List<DeliveryDTO>? = null
-
 )

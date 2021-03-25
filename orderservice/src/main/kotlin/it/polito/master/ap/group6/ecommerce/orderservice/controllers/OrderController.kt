@@ -9,6 +9,7 @@ import it.polito.master.ap.group6.ecommerce.orderservice.services.OrderService
 import org.bson.types.ObjectId
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.server.ResponseStatusException
 
@@ -76,19 +77,19 @@ class OrderController(
      * @throws HttpStatus.NOT_FOUND if the order doesn't exist.
      */
     @GetMapping("/delete/{orderID}")
-    fun cancelOrder(@PathVariable("orderID") orderID: String): OrderDTO? {
+    fun cancelOrder(@PathVariable("orderID") orderID: String): ResponseEntity<OrderDTO?> {
         println("OrderController.cancelOrder: the order $orderID is requested to be canceled.")
         try {
             val canceledOrder: OrderDTO = orderService.cancelOrder(ObjectId(orderID))
             if (canceledOrder.status == OrderStatus.CANCELED) {
-                return canceledOrder
+                return ResponseEntity(canceledOrder, HttpStatus.OK)
             } else {
-                throw ResponseStatusException(
-                    HttpStatus.FORBIDDEN, "The order $orderID cannot be canceled because it has been already delivered"
-                )
+                //The order cannot be canceled since it has been already delivered
+                return ResponseEntity(canceledOrder, HttpStatus.CONFLICT)
             }
         } catch (e: IllegalArgumentException) {
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, "The order $orderID cannot be found")
+            //The order cannot be found
+            return ResponseEntity(null, HttpStatus.NOT_FOUND)
         }
     }
 }

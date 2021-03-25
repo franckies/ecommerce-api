@@ -6,18 +6,19 @@
 package it.polito.master.ap.group6.ecommerce.catalogservice.services
 
 //------- external dependencies ------------------------------------------------
-import org.bson.types.ObjectId
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Service
-import org.springframework.beans.factory.annotation.Value
-import org.springframework.web.client.RestTemplate
-import org.springframework.web.client.ResourceAccessException
-import java.util.*
 
 //------- internal dependencies ------------------------------------------------
-import it.polito.master.ap.group6.ecommerce.catalogservice.models.User
 import it.polito.master.ap.group6.ecommerce.catalogservice.models.dtos.toDto
 import it.polito.master.ap.group6.ecommerce.common.dtos.*
+import org.bson.types.ObjectId
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.HttpStatus
+import org.springframework.stereotype.Service
+import org.springframework.web.client.HttpClientErrorException
+import org.springframework.web.client.ResourceAccessException
+import org.springframework.web.client.RestTemplate
+import java.util.*
 
 
 //======================================================================================================================
@@ -28,7 +29,6 @@ interface OrderService {
     fun readOrderHistory(userID: String): Optional<ShownOrderListDTO>
     fun undoOrder(orderID: String): Optional<OrderDTO>
 }
-
 
 
 //======================================================================================================================
@@ -57,7 +57,7 @@ class OrderServiceImpl(
             return Optional.empty()
 
         // fill information of the user
-        if ( !checkDeliveryAddress(userID, placedOrderDTO.deliveryAddress) )
+        if (!checkDeliveryAddress(userID, placedOrderDTO.deliveryAddress))
             return Optional.empty()
         val filled_dto = PlacedOrderDTO(
             user = user.get().toDto(),
@@ -124,15 +124,27 @@ class OrderServiceImpl(
                 OrderDTO::class.java
             )
         } catch (e: ResourceAccessException) {
+            //TODO the service is not reachable
+            println("Server not reachable")
+        } catch (e: HttpClientErrorException) {
+            when (e.statusCode) {
+                HttpStatus.FORBIDDEN -> {
+                    //TODO order service cannot delete the order because it is in delivering or delivered status
+                }
+                else -> {}//default branch
+            }
             System.err.println("Impossible to DELETE from '$url'")
             return Optional.empty()
+        } catch (e: Exception) {
+            //TODO internal server error
+            println("Something went wrong")
         }
 
         // provide requested outcome
         if (res == null)
             return Optional.empty()
         else
-            return Optional.empty() //TODO return Optional.of(res)
+            return Optional.of(res)
     }
 
 

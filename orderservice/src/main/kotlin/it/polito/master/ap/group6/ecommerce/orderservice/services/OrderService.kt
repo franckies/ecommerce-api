@@ -1,6 +1,5 @@
 package it.polito.master.ap.group6.ecommerce.orderservice.services
 
-import com.google.gson.Gson
 import it.polito.master.ap.group6.ecommerce.common.dtos.DeliveryListDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.OrderDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.PlacedOrderDTO
@@ -169,7 +168,7 @@ class OrderServiceImpl(
             return orderOptional.get().toDto()
         }
         val order = orderOptional.get()
-        if (order.status == OrderStatus.PAID || order.status == OrderStatus.PENDING) {
+        if (order.status == OrderStatus.PAID) {// || order.status == OrderStatus.PENDING) {
             //TODO: if it was PENDING, we must inform to NOT perform the recharge!!!
             order.status = OrderStatus.CANCELED
             orderRepository.save(order)

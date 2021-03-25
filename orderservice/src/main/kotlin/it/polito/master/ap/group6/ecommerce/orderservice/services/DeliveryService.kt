@@ -35,7 +35,7 @@ class DeliveryService(
         //After a while update randomly a delivery status for testing
         val purchaseJob = GlobalScope.launch { // launch a new coroutine in background and continue
             while (true) {
-                delay(100000L)
+                delay(10000L)
 
                 val orderOptional = orderRepository.findById(ObjectId(orderID))
                 val order: Order

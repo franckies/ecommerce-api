@@ -69,15 +69,15 @@ For each microservice, there are reported the classes that are defined in the mi
 |`GET /catalog/products/admin/show`| response: ProductAdminListDTO |Shows the catalog for an admin user with warehouse information|
 |`POST /catalog/products/admin`| request: ProductAdminDTO response: ProductDTO |Admin adds a product specifying the warehouse|
 |`PUT /catalog/products/admin/{productID}`| request: ProductAdminDTO response: ProductDTO |Admin modify information of an existing product (eventually updating the alarm level)|
-|`GET /catalog/orders/{userID}`| response: PlacedOrderListDTO |Shows the orders associated with `userID`|
+|`GET /catalog/orders/{userID}`| response: ShownOrderListDTO |Shows the orders associated with `userID`|
 |`POST /catalog/orders/{userID}`| request: PlacedOrderDTO |Create an order for the `userID` user with the details specified in `PlacedOrderDTO`|
-|`DELETE /catalog/orders/{orderID}`| response: OrderDTO |Cancel an order `orderID` for the currently logged user (update its STATUS)|
+|`GET /catalog/orders/delete/{orderID}`| response: OrderDTO |Cancel an order `orderID` for the currently logged user (update its STATUS)|
 |`GET /catalog/wallet/{userID}`| response: WalletDTO |Retrieve the wallet information (total and transaction list) for the currently logged user|
 |`POST /catalog/wallet/admin/recharge/{userID}`| request: RechargeDTO |Recharge the user specified in `userID`|
 #### Wallet service endpoints
 |EP|Payload| Description|
 |---|---|---|
-|`PUT /wallet/create`| request: UserDTO response: WalletID|Catalog creates a new user so that Wallet can create a correspondent entry|
+|`POST /wallet/create`| request: UserDTO response: WalletID|Catalog creates a new user so that Wallet can create a correspondent entry|
 |`POST /wallet/{userID}`| request: TransactionDTO response: TransactionID|Order insert a new transaction in the `userID`'s wallet|
 |`POST /wallet/checkavailability/{userID}`| request: TransactionDTO response: TransactionID|Order checks for availability to start a new order on `userID`'s wallet|
 |`POST /wallet/performtransaction/{transactionID}`| request: TransactionID response: Boolean|Order insert a new transaction previously checked.|
@@ -91,14 +91,14 @@ For each microservice, there are reported the classes that are defined in the mi
 |`POST /warehouse/products`| request: ProductAdminDTO response: ProductDTO |Catalog insert a new product in a specific warehouse |
 |`PUT /warehouse/products/{productID}`| request: ProductAdminDTO response: ProductDTO |Catalog modifies a product in a specific warehouse (eventually updating the alarm level) |
 |`POST /warehouse/orders`| request: OrderDTO response: DeliveryListDTO |Order request a new order and receives a list of deliveries|
-|`DELETE /warehouse/orders`| request: OrderDTO |Order deletes a previously requested order (it has been canceled by the user) |
+|`POST /warehouse/orders/restore`| request: OrderDTO |Order deletes a previously requested order (it has been canceled by the user) |
 #### Order service endpoints
 |EP|Payload| Description|
 |---|---|---|
 |`POST /order/orders/`| request: PlacedOrderDTO response: OrderDTO|Catalog insert a new order. The newly created order is returned, having STATUS PAID or FAILED|
-|`GET /order/{userID}/orders`| response: List<OrderDTO> |Catalog requests the orders of `userID`|
-|`GET /order/orders/{orderID}`| response: OrderDTO |Catalog requests the order `orderID`|
-|`DELETE /order/orders/{orderID}`| response: OrderDTO |Catalog requests to cancel the order `orderID` (updating its STATUS, if it has not been shipped yet)|
+|`GET /order/{userID}/orders`| response: ShownOrderListDTO |Catalog requests the orders of `userID`|
+|`GET /order/orders/{orderID}`| response: ShownOrderDTO |Catalog requests the order `orderID`|
+|`GET /order/delete/{orderID}`| response: OrderDTO |Catalog requests to cancel the order `orderID` (updating its STATUS, if it has not been shipped yet)|
 
 ### DTOs definition
 ```
@@ -119,6 +119,55 @@ DeliveryDTO(WarehouseDTO, List<PurchaseDTO>)
 DeliveryListDTO(OrderDTO, List<DeliveryDTO>)
 
 PlacedOrderDTO(UserDTO, List<PurchaseDTO>, deliveryAddress)
-PlacedOrderListDTO(Dict<orderID,List<PurchaseDTO>>)
+ShownOrderDTO(List<OrderDTO>)
+ShownOrderListDTO(List<List<OrderDTO>)
 ```
+### Http Response code
+Always catched:
+- ResourceAccessException if the remote service is not reachable
+- 500 Internal_Server_error if the remote service got an internal exception
+
+#### Warehouse service endpoints
+|EP|Http Status Code| Description|
+|---|---|---|
+|`GET /warehouse/products/totals`| 200 OK |Everything goes ok, the product list is returned (can be empty)|
+|`GET /warehouse/products/perwarehouse`| 200 OK |Everything goes ok, the product list per-warehouse is returned (can be empty)|
+|`POST /warehouse/products`| 200 OK |Everything goes ok,the product is inserted in the database |
+|`POST /warehouse/products`| 409 CONFLICT | The product already exists in the database |
+|`PUT /warehouse/products/{productID}`| 200 OK |Everything goes ok,the product is modified in the database |
+|`PUT /warehouse/products/{productID}`| 404 NOT_FOUND | The product or the warehouse doesn't exists |
+|`POST /warehouse/orders`| 200 OK | Everything goes ok, the list of deliveries is retrieved |
+|`POST /warehouse/orders`| 409 CONFLICT |One or more products are not available|
+|`POST /warehouse/orders/restore`| 200 OK | Everything goes ok, the products are restored |
+
+#### Order service endpoints
+|EP|Payload| Description|
+|---|---|---|
+|`POST /order/orders/`| 200 OK |Everything goes ok, the order is paid and deliveries are scheduled|
+|`POST /order/orders/`| 402 PAYMENT_REQUIRED |There is not enough money (failed in STEP 1 or STEP 3)|
+|`POST /order/orders/`| 409 CONFLICT | There aren't enough products (failed in STEP 2)|
+|`GET /order/{userID}/orders`| 200 OK |Everything goes ok, the orders of the user are returned (can be empty)|
+|`GET /order/orders/{orderID}`| 200 OK |Everything goes ok, the orders is returned |
+|`GET /order/orders/{orderID}`| 404 NOT_FOUND | The order doesn't exist |
+|`GET /order/delete/{orderID}`|  200 OK |Everything goes ok, the order is canceled  |
+|`GET /order/delete/{orderID}`|  402 PAYMENT_REQUIRED |The refund goes wrong  |
+|`GET /order/delete/{orderID}`|  409 CONFLICT | The products restoring goes wrong  |
+|`GET /order/delete/{orderID}`|  404 NOT_FOUND |The order doesn't exist  |
+
+#### Wallet service endpoints
+|EP|Payload| Description|
+|---|---|---|
+|`POST /wallet/create`| 200 OK |Everything goes ok, the wallet for the user is created |
+|`POST /wallet/{userID}`| 200 OK |Everything goes ok, the wallet of the user is retrieved|
+|`POST /wallet/{userID}`| 404 NOT_FOUND | The wallet doesn't exists for the user|
+|`POST /wallet/checkavailability/{userID}`| 200 OK |Everything goes ok, the user has the correct amount of money in the wallet|
+|`POST /wallet/checkavailability/{userID}`| 409 CONFLICT | The user hasn't enough money |
+|`POST /wallet/checkavailability/{userID}`| 404 NOT_FOUND | The wallet doesn't exists for the user|
+|`POST /wallet/performtransaction/{transactionID}`| 200 OK |Everything goes ok, the transaction is confirmed|
+|`POST /wallet/performtransaction/{transactionID}`| 404 NOT_FOUND | The transaction doesn't exist|
+|`POST /wallet/performtransaction/{transactionID}`| 409 CONFLICT | The transaction is not confirmed|
+|`GET /wallet/{userID}`| 200 OK |Everything goes ok, the wallet information are retrieved|
+|`GET /wallet/{userID}`|404 NOT_FOUND | The wallet doesn't exists for the user|
+|`POST /wallet/recharge/{userID}`| 200 OK |Everything goes ok, the wallet is recharged|
+|`POST /wallet/recharge/{userID}`| 404 NOT_FOUND | The wallet doesn't exists for the user|
 

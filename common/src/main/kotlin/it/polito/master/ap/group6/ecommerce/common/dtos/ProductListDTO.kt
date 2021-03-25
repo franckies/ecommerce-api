@@ -2,7 +2,7 @@ package it.polito.master.ap.group6.ecommerce.common.dtos
 
 data class ProductListDTO(
     //val products: MutableMap<ProductDTO, Int>
-    val products: MutableList<ProductQuantityDTO>
+    val products: MutableList<ProductQuantityDTO>? = null
 )
 
 data class ProductQuantityDTO(
