@@ -36,8 +36,9 @@ class OrderController(
         val createdOrder = orderService.createOrder(placedOrder)
         return when(createdOrder.responseId){
             ResponseType.ORDER_CREATED -> ResponseEntity(createdOrder.body as OrderDTO, HttpStatus.OK)
-            //ResponseType.NO_PRODUCTS -> ResponseEntity()
-            else ->
+            ResponseType.NO_PRODUCTS -> ResponseEntity(createdOrder.body as OrderDTO, HttpStatus.CONFLICT)
+            ResponseType.NO_MONEY -> ResponseEntity(createdOrder.body as OrderDTO, HttpStatus.PAYMENT_REQUIRED)
+            else -> ResponseEntity(createdOrder.body as OrderDTO, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
 
@@ -50,13 +51,14 @@ class OrderController(
     fun getOrder(@PathVariable("orderID") orderID: String): ResponseEntity<ShownOrderDTO?> {
         println("OrderController.getOrder: information about the order $orderID is requested.")
         try {
-            val orderList: List<OrderDTO> = orderService.getOrder(ObjectId(orderID)) ?: run {
-                println("OrderController.getOrder: The order $orderID cannot be found")
-                throw ResponseStatusException(HttpStatus.NOT_FOUND, "The order $orderID cannot be found")
+            val orderList = orderService.getOrder(ObjectId(orderID))
+            return when(orderList.responseId){
+                ResponseType.ORDER_NOT_FOUND -> ResponseEntity(null, HttpStatus.NOT_FOUND)
+                ResponseType.ORDER_FOUND -> ResponseEntity(ShownOrderDTO(orderList.body as List<OrderDTO>?), HttpStatus.OK)
+                else -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
             }
-            return ShownOrderDTO(orderList)
         } catch (e: IllegalArgumentException) {
-            println("OrderController.getOrder: The order $orderID cannot be found.")
+            println("OrderController.getOrder: The order $orderID cannot be found because the id is not in a valid format.")
             return ResponseEntity(null, HttpStatus.NOT_FOUND)
         }
     }
@@ -67,13 +69,14 @@ class OrderController(
      * @throws HttpStatus.NOT_FOUND if the user doesn't exists.
      */
     @GetMapping("/{userID}/orders")
-    fun getOrdersByUser(@PathVariable("userID") userID: String): ShownOrderListDTO? {
+    fun getOrdersByUser(@PathVariable("userID") userID: String): ResponseEntity<ShownOrderListDTO?> {
         println("OrderController.getOrderByUser: information about the orders of the user $userID is requested.")
-        val ordersList: List<List<OrderDTO>> = orderService.getOrdersByUser(userID) ?: run {
-            println("OrderController.getOrderByUser: The user $userID cannot be found.")
-            throw ResponseStatusException(HttpStatus.NOT_FOUND, "The user $userID cannot be found")
+        val ordersList = orderService.getOrdersByUser(userID)
+        return when(ordersList.responseId){
+            ResponseType.ORDER_FOUND -> ResponseEntity(ShownOrderListDTO(ordersList.body as List<List<OrderDTO>>?), HttpStatus.OK)
+            ResponseType.ORDER_NOT_FOUND -> ResponseEntity(ShownOrderListDTO(), HttpStatus.OK) //no orders associated with user, return empty list
+            else -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
         }
-        return ShownOrderListDTO(ordersList)
     }
 
     /**
@@ -86,15 +89,16 @@ class OrderController(
     fun cancelOrder(@PathVariable("orderID") orderID: String): ResponseEntity<OrderDTO?> {
         println("OrderController.cancelOrder: the order $orderID is requested to be canceled.")
         try {
-            val canceledOrder: OrderDTO = orderService.cancelOrder(ObjectId(orderID))
-            if (canceledOrder.status == OrderStatus.CANCELED) {
-                return ResponseEntity(canceledOrder, HttpStatus.OK)
-            } else {
-                //The order cannot be canceled since it has been already delivered
-                return ResponseEntity(canceledOrder, HttpStatus.CONFLICT)
+            val canceledOrder = orderService.cancelOrder(ObjectId(orderID))
+            return when(canceledOrder.responseId){
+                ResponseType.ORDER_FOUND -> ResponseEntity(canceledOrder.body as OrderDTO, HttpStatus.OK)
+                ResponseType.ORDER_NOT_FOUND -> ResponseEntity(null, HttpStatus.NOT_FOUND)
+                ResponseType.CANNOT_RESTORE_PRODUCTS -> ResponseEntity(canceledOrder.body as OrderDTO, HttpStatus.CONFLICT)
+                ResponseType.CANNOT_RESTORE_MONEY -> ResponseEntity(canceledOrder.body as OrderDTO, HttpStatus.PAYMENT_REQUIRED)
+                else -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
             }
         } catch (e: IllegalArgumentException) {
-            //The order cannot be found
+            println("OrderController.getOrder: The order $orderID cannot be found because the id is not in a valid format.")
             return ResponseEntity(null, HttpStatus.NOT_FOUND)
         }
     }

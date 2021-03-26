@@ -19,7 +19,7 @@ import org.springframework.data.mongodb.core.mapping.Document
  */
 @Document("orders")
 class Order(
-    val buyer: UserDTO? = null,
+    val buyerId: String? = null,
     val purchases: List<Purchase>? = null,
     var status: OrderStatus? = null,
     val deliveryAddress: String? = null
@@ -30,4 +30,4 @@ class Order(
         get() = purchases?.map { it.price * it.quantity.toFloat() }?.sum()
 }
 
-data class Purchase(val product: ProductDTO, val quantity: Int, val price: Float)
+data class Purchase(val productID: String, val quantity: Int, val price: Float)

@@ -27,7 +27,7 @@ class OrderserviceApplication(
         //clear table
         orderRepo.deleteAll()
         deliveryRepo.deleteAll()
-        /*
+
         //Populate Order
         val userDTOList = mutableListOf<UserDTO>().apply {
             add(UserDTO("1239820421", "Francesco", "Semeraro", "Milano", "User", UserRole.CUSTOMER.toString()))
@@ -39,22 +39,22 @@ class OrderserviceApplication(
             add(ProductDTO("sf13321","Tablet", "iPad 2018", "Electronics", "tablet_pic", 300f))
         }
         val purchaseList1 = mutableListOf<Purchase>().apply {
-            add(Purchase(productList[0], 2, 15f))
-            add(Purchase(productList[2], 1, 320f))
+            add(Purchase(productList[0].id!!, 2, 15f))
+            add(Purchase(productList[2].id!!, 1, 320f))
         }
         val purchaseList2 = mutableListOf<Purchase>().apply {
-            add(Purchase(productList[0], 1, 21f))
-            add(Purchase(productList[1], 1, 47f))
+            add(Purchase(productList[0].id!!, 1, 21f))
+            add(Purchase(productList[1].id!!, 1, 47f))
         }
 
         val orderList = mutableListOf<Order>().apply {
-            add(Order(userDTOList[0], purchaseList1, OrderStatus.PAID, "Milan"))
-            add(Order(userDTOList[1], purchaseList2, OrderStatus.DELIVERING, "Turin"))
+            add(Order(userDTOList[0].id, purchaseList1, OrderStatus.PAID, "Milan"))
+            add(Order(userDTOList[1].id, purchaseList2, OrderStatus.DELIVERING, "Turin"))
         }
         orderRepo.saveAll(orderList)
 
         //test order POST
-        val o = PlacedOrderDTO(userDTOList[1], purchaseList1.map { it.toDto() }, "Turin")
+        val o = PlacedOrderDTO("2142109842", purchaseList1.map { it.toDto() }, "Turin")
         val jsonString = Gson().toJson(o)
         println(jsonString)
 
@@ -62,20 +62,20 @@ class OrderserviceApplication(
         //umbrella is shipped from asti, while tablet from Genova.
         //Only the first user has associated deliveries, the second user order is still in pending.
         val deliveryList = mutableListOf<Delivery>().apply{
-            add(Delivery(orderList[0].id, "Milan", WarehouseDTO("Amazon", "Asti"), listOf(purchaseList1[0]), DeliveryStatus.PENDING))
-            add(Delivery(orderList[0].id, "Milan", WarehouseDTO("Amazon", "Genova"), listOf(purchaseList1[1]), DeliveryStatus.PENDING))
+            add(Delivery(orderList[0].id, "Milan","Amazon Asti", listOf(purchaseList1[0]), DeliveryStatus.PENDING))
+            add(Delivery(orderList[0].id, "Milan", "Amazon Genova", listOf(purchaseList1[1]), DeliveryStatus.PENDING))
             //add(Delivery(orderList[1].id, "Turin", WarehouseDTO("Ebay", "Roma"), listOf(purchaseList2[0]), DeliveryStatus.DELIVERING))
             //add(Delivery(orderList[1].id, "Turin", WarehouseDTO("Ebay", "Bari"), listOf(purchaseList2[1]), DeliveryStatus.PENDING))
         }
 
         val testDeliveryList = mutableListOf<Delivery>().apply{
-            add(Delivery(o.toModel().id, "Turin", WarehouseDTO("Amazon", "Roma"), listOf(purchaseList1[0]), DeliveryStatus.PENDING))
-            add(Delivery(o.toModel().id, "Turin", WarehouseDTO("Amazon", "Lecce"), listOf(purchaseList1[1]), DeliveryStatus.PENDING))
+            add(Delivery(o.toModel().id, "Turin", "Amazon Roma", listOf(purchaseList1[0]), DeliveryStatus.PENDING))
+            add(Delivery(o.toModel().id, "Turin", "Amazon Lecce", listOf(purchaseList1[1]), DeliveryStatus.PENDING))
         }
         val d = DeliveryListDTO(o.toModel().id, testDeliveryList.map { it.toDto() })
         val jsonStringd = Gson().toJson(d)
         println(jsonStringd)
-        deliveryRepo.saveAll(deliveryList)*/
+        deliveryRepo.saveAll(deliveryList)
 
     }
 }

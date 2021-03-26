@@ -17,15 +17,15 @@ fun OrderDTO.toModel(): Order {
 }
 
 fun Purchase.toDto(): PurchaseDTO {
-    return PurchaseDTO(this.product, this.quantity, this.price)
+    return PurchaseDTO(this.productID, this.quantity, this.price)
 }
 
 fun PurchaseDTO.toModel(): Purchase {
-    return Purchase(this.product!!, this.quantity!!, this.sellingPrice!!)
+    return Purchase(this.productID!!, this.quantity!!, this.sellingPrice!!)
 }
 
 fun PlacedOrderDTO.toModel(): Order {
-    return Order(this.user, this.purchaseList?.map { it.toModel()!! }, null, this.deliveryAddress)
+    return Order(this.userID, this.purchaseList?.map { it.toModel()!! }, null, this.deliveryAddress)
 }
 
 fun Delivery.toDto(): DeliveryDTO {
