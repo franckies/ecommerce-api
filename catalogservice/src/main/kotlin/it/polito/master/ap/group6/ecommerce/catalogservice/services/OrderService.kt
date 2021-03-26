@@ -69,14 +69,16 @@ class OrderServiceImpl(
             return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "User $userID has not '${placedOrderDTO.deliveryAddress}' as delivery address")
 
         // initialize SAGA object
-        val filled_dto = PlacedOrderDTO(  // TODO convert to SAGA object
+        val sagaId: ObjectId = ObjectId.get() // assuming it creates unique IDs -> it will be orderID
+        val filled_dto = PlacedOrderDTO(
+            sagaID = sagaId.toString(),
             userID = user.get().id,
             purchaseList = placedOrderDTO.purchaseList,
-            deliveryAddress = placedOrderDTO.deliveryAddress  //TODO let the client decide or force by server-side?
+            deliveryAddress = placedOrderDTO.deliveryAddress
         )
 
         // log SAGA operation
-        val creation_op = Operation(sagaId = null, orderDto = null)  // TODO insert SAGA identifier and formalize the SAGA object
+        val creation_op = Operation(sagaId = sagaId, orderDto = null)  // TODO insert SAGA identifier and formalize the SAGA object
         operationRepository.save(creation_op)
 
         // submit remotely to the Order microservice
@@ -116,6 +118,8 @@ class OrderServiceImpl(
             System.err.println("encountered exception $e")
             return ExecutionResult(code = ExecutionResultType.GENERIC_ERROR, message = "Catch exception ${e.message}")
         }
+
+        //
 
         // provide requested outcome
         return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = order_dto)
@@ -165,8 +169,8 @@ class OrderServiceImpl(
         // check if exists SAGA for this order
         val order_id: ObjectId = ObjectId(orderID)
         val saga_obj = operationRepository.findBySagaId(order_id)  // assuming sagaId==orderId
-        //if (saga_obj.isEmpty)
-         //   return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "There is no SAGA for ID $order_id")
+        if (saga_obj.isEmpty)
+            return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "There is no SAGA for ID $order_id")
 
         // log SAGA operation
         operationRepository.deleteBySagaId(order_id)  // TODO understand exact meaning
