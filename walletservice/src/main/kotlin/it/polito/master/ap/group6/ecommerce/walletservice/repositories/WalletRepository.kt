@@ -7,5 +7,5 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface WalletRepository: MongoRepository<Wallet, ObjectId> {
-    fun findByUserId(id: String): Wallet
+    fun findByUserID(id: String): Wallet
 }

@@ -41,7 +41,7 @@ class WalletServiceImpl(
         try {
 
             val transaction = transactionRepository.findById(transactionID!!)
-            val wallet = walletRepository.findByUserId(transaction.userID!!)
+            val wallet = walletRepository.findByUserID(transaction.userID!!)
 
             wallet.transactions?.find{it.id==transactionID}?.status = TransactionStatus.ACCEPTED
 
@@ -70,7 +70,7 @@ class WalletServiceImpl(
         try {
 
             val transaction = transactionRepository.findByCausal(orderID!!)
-            val wallet = walletRepository.findByUserId(transaction.userID!!)
+            val wallet = walletRepository.findByUserID(transaction.userID!!)
 
             if(transaction.status == TransactionStatus.ACCEPTED || transaction.status == TransactionStatus.PENDING){
 
@@ -102,7 +102,7 @@ class WalletServiceImpl(
         var res: Response
 
         try {
-            val wallet = walletRepository.findByUserId(userID!!)
+            val wallet = walletRepository.findByUserID(userID!!)
             val transaction = checkTransaction?.toModel()
 
 
@@ -150,7 +150,7 @@ class WalletServiceImpl(
         try {
 
             val transaction = placedRecharge?.toModel()
-            val wallet = walletRepository.findByUserId(userID!!)
+            val wallet = walletRepository.findByUserID(userID!!)
             val transactionSaved = transactionRepository.save(transaction!!)
 
             transaction.status = TransactionStatus.ACCEPTED
@@ -182,7 +182,7 @@ class WalletServiceImpl(
 
         try {
 
-            val wallet = walletRepository.findByUserId(userID!!)
+            val wallet = walletRepository.findByUserID(userID!!)
             res =  Response.userWalletGet()
             res.body = wallet
 
@@ -203,7 +203,7 @@ class WalletServiceImpl(
 
         try {
 
-            walletRepository.findByUserId(userID!!)
+            walletRepository.findByUserID(userID!!)
             res =  Response.userWalletCreatedFailed()
 
         }
