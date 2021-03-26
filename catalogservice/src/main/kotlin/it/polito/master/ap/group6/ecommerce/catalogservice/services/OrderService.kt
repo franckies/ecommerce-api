@@ -164,7 +164,7 @@ class OrderServiceImpl(
     override fun undoOrder(orderID: String): ExecutionResult<OrderDTO> {
         // check if exists SAGA for this order
         val order_id: ObjectId = ObjectId(orderID)
-        val saga_obj = operationRepository.findByIdOrNull(order_id)  // assuming sagaId==orderId
+        val saga_obj = operationRepository.findBySagaId(order_id)  // assuming sagaId==orderId
         if (saga_obj.isEmpty)
             return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "There is no SAGA for ID $order_id")
 

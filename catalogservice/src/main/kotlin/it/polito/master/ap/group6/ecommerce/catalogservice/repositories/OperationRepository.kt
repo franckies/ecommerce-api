@@ -13,7 +13,7 @@ import java.util.*
 
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.models.Operation
-
+import it.polito.master.ap.group6.ecommerce.catalogservice.models.User
 
 
 //======================================================================================================================
@@ -22,5 +22,6 @@ import it.polito.master.ap.group6.ecommerce.catalogservice.models.Operation
 @Repository("users")
 interface OperationRepository: MongoRepository<Operation, ObjectId> {
     // custom queries
+    fun findBySagaId(sagaId: ObjectId): Optional<Operation>
     fun deleteBySagaId(sagaId: ObjectId)
 }
