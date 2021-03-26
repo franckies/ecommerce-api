@@ -21,6 +21,7 @@ import it.polito.master.ap.group6.ecommerce.catalogservice.services.WalletServic
 import it.polito.master.ap.group6.ecommerce.common.dtos.RechargeDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.WalletDTO
 import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResultType
+import javax.annotation.security.RolesAllowed
 
 
 //======================================================================================================================
@@ -71,6 +72,7 @@ class WalletController(
      * @return the HTTP code for success or failure.
      * @throws HttpStatus.NOT_FOUND if the user doesn't exist.
      */
+    @RolesAllowed("ROLE_ADMIN")
     @PostMapping("/admin/recharge/{userID}")
     fun issueRecharge(@PathVariable("userID") userID: String,
                       @RequestBody rechargeDto: RechargeDTO): ResponseEntity<String> {

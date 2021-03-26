@@ -165,8 +165,8 @@ class OrderServiceImpl(
         // check if exists SAGA for this order
         val order_id: ObjectId = ObjectId(orderID)
         val saga_obj = operationRepository.findBySagaId(order_id)  // assuming sagaId==orderId
-        if (saga_obj.isEmpty)
-            return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "There is no SAGA for ID $order_id")
+        //if (saga_obj.isEmpty)
+         //   return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "There is no SAGA for ID $order_id")
 
         // log SAGA operation
         operationRepository.deleteBySagaId(order_id)  // TODO understand exact meaning

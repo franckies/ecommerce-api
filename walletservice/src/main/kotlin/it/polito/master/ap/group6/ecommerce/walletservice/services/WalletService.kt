@@ -151,9 +151,9 @@ class WalletServiceImpl(
 
             val transaction = placedRecharge?.toModel()
             val wallet = walletRepository.findByUserID(userID!!)
-            val transactionSaved = transactionRepository.save(transaction!!)
+            transaction!!.status = TransactionStatus.ACCEPTED
 
-            transaction.status = TransactionStatus.ACCEPTED
+            val transactionSaved = transactionRepository.save(transaction)
 
             wallet.total = wallet.total!! + transaction.amount!!
 

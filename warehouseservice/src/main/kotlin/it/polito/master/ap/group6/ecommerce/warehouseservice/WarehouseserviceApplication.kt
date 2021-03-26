@@ -22,7 +22,7 @@ class WarehouseserviceApplication(warehouseRepository: WarehouseRepository, deli
 
 fun populate_collection(warehouseRepository: WarehouseRepository, deliveryLogRepository: DeliveryLogRepository) {
 
-    warehouseRepository.deleteAll()
+    /*warehouseRepository.deleteAll()
     deliveryLogRepository.deleteAll()
 
     val productList = mutableListOf<Product>().apply {
@@ -61,7 +61,7 @@ fun populate_collection(warehouseRepository: WarehouseRepository, deliveryLogRep
         )
     }
 
-    warehouseRepository.saveAll(productList)
+    warehouseRepository.saveAll(productList)*/
 
 }
 

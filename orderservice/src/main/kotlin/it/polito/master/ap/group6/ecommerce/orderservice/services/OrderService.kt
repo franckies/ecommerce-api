@@ -95,7 +95,7 @@ class OrderServiceImpl(
 
         //STEP 3: complete the transaction if the delivery has started and mark order as paid. It also takes
         //care of canceling all the pending deliveries created in the STEP 2.
-        val step3 = completeTransaction(step2.body as String, order)
+        val step3 = completeTransaction(step1.body as String, order)
         if (step3.responseId != ResponseType.ORDER_CONFIRMED) {
             order.status = OrderStatus.FAILED
             orderRepository.save(order)
@@ -289,6 +289,11 @@ class OrderServiceImpl(
                     undoTransaction(order) //Tell wallet to restore the transaction
                     Response.productNotAvailable()
                 }
+                HttpStatus.NOT_FOUND ->{
+                    println("OrderService.submitOrder: One or more products do not exist in the database.")
+                    undoTransaction(order) //Tell wallet to restore the transaction
+                    Response.productNotAvailable()
+                }
                 else -> {
                     println("OrderService.submitOrder: An unknown error occurred.")
                     undoTransaction(order) //Tell wallet to restore the transaction
@@ -330,7 +335,7 @@ class OrderServiceImpl(
      */
     override fun completeTransaction(transactionId: String, order: Order): Response {
         val wallet = "localhost:8083"
-        val transactionConfirmationId: String?
+        var transactionConfirmationId: String?
 
         try {
             transactionConfirmationId = RestTemplate().getForObject(
@@ -340,6 +345,7 @@ class OrderServiceImpl(
         } catch (e: HttpClientErrorException) {
             //if something goes wrong cancel also deliveries associated with the order
             undoDeliveries(order)
+            transactionConfirmationId = ""
             return when (e.statusCode) {
                 HttpStatus.CONFLICT -> {
                     println("OrderService.completeTransaction: The transaction $transactionId cannot be confirmed.")
@@ -355,11 +361,13 @@ class OrderServiceImpl(
                 }
             }
         } catch (e: ResourceAccessException) {
+            transactionConfirmationId =""
             //if something goes wrong cancel also deliveries associated with the order
             undoDeliveries(order)
             println("OrderService.completeTransaction: [${e.cause}]. Cannot contact the wallet service to perform the transaction.")
             return Response.cannotReachTheMS()
         } catch (e: Exception) {
+            transactionConfirmationId = ""
             //if something goes wrong cancel also deliveries associated with the order
             undoDeliveries(order)
             println("OrderService.completeTransaction: [${e.cause}]. An unknown error occurred.")
@@ -388,10 +396,9 @@ class OrderServiceImpl(
                 }
                 try {
                     //Inform the warehouse that the delivery is canceled, so products must be restored
-                    val result: Boolean? = RestTemplate().postForObject(
-                        "http://${warehouse}/warehouse/orders/restore",
-                        order.id, //DeliveryListDTO(order.id, deliveries.map { it.get().toDto() }),
-                        Boolean::class.java
+                    val result: String? = RestTemplate().getForObject(
+                        "http://${warehouse}/warehouse/orders/restore/${order.id}",
+                        String::class.java
                     )
                 } catch (e: ResourceAccessException) {
                     println("OrderService.undoDeliveries: [${e.cause}]. Cannot contact the warehouse service to restore the products.")
