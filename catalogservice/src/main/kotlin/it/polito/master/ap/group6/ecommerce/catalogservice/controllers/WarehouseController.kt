@@ -14,6 +14,7 @@ import org.springframework.web.context.request.ServletRequestAttributes
 import javax.servlet.http.HttpServletRequest
 import javax.annotation.security.RolesAllowed
 import org.springframework.http.ResponseEntity
+import mu.KotlinLogging
 
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResultType
@@ -35,7 +36,11 @@ import it.polito.master.ap.group6.ecommerce.common.dtos.*
 class WarehouseController(
     @Autowired private val warehouseService: WarehouseService
 ) {
+    //------- attributes -------------------------------------------------------
+    private val logger = KotlinLogging.logger {}
 
+
+    //------- methods ----------------------------------------------------------
     /**
      * Shows the catalog (the same for all users).
      * @return the list of the available products (despite their location).
@@ -45,7 +50,7 @@ class WarehouseController(
     fun showProducts(): ResponseEntity<ProductListDTO> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
-        println("Received GET on url='${currentRequest?.requestURL}'")
+        logger.info { "Received GET on url='${currentRequest?.requestURL}'" }
 
         // invoke the business logic
         val products_list = warehouseService.showProducts()
@@ -73,7 +78,7 @@ class WarehouseController(
     fun showProductsPerWarehouse(): ResponseEntity<ProductListAdminDTO> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
-        println("Received GET on url='${currentRequest?.requestURL}'")
+        logger.info { "Received GET on url='${currentRequest?.requestURL}'" }
 
         // invoke the business logic
         val products_list = warehouseService.showProductsPerWarehouse()
@@ -103,7 +108,7 @@ class WarehouseController(
     fun createProduct(@RequestBody newProduct: ProductAdminDTO): ResponseEntity<ProductDTO> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
-        println("Received POST on url='${currentRequest?.requestURL}' with body=${newProduct}")
+        logger.info { "Received POST on url='${currentRequest?.requestURL}' with body=${newProduct}" }
 
         // invoke the business logic
         val created_product = warehouseService.createProduct(newProduct)
@@ -134,7 +139,7 @@ class WarehouseController(
                       @RequestBody modifiedProduct: ProductAdminDTO): ResponseEntity<ProductDTO> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
-        println("Received PUT on url='${currentRequest?.requestURL}' with body=${modifiedProduct}")
+        logger.info { "Received PUT on url='${currentRequest?.requestURL}' with body=${modifiedProduct}" }
 
         // invoke the business logic
         val updated_product = warehouseService.modifyProduct(productID, modifiedProduct)

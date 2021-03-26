@@ -14,6 +14,7 @@ import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
 import javax.servlet.http.HttpServletRequest
 import org.springframework.http.ResponseEntity
+import mu.KotlinLogging
 
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.OrderService
@@ -37,7 +38,11 @@ import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.Executi
 class OrderController(
     @Autowired private val orderService: OrderService
 ) {
+    //------- attributes -------------------------------------------------------
+    private val logger = KotlinLogging.logger {}
 
+
+    //------- methods ----------------------------------------------------------
     /**
      * Create an order for the userID user with the details specified in PlacedOrderDTO.
      * @return the representation of the created order (with ID and status).
@@ -48,7 +53,7 @@ class OrderController(
                     @RequestBody placedOrderDTO: PlacedOrderDTO): ResponseEntity<OrderDTO> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
-        println("Received POST on url='${currentRequest?.requestURL}' with body=${placedOrderDTO}")
+        logger.info { "Received POST on url='${currentRequest?.requestURL}' with body=${placedOrderDTO}" }
 
         // invoke the business logic
         val created_order = orderService.createOrder(userID, placedOrderDTO)
@@ -76,7 +81,7 @@ class OrderController(
     fun readOrderHistory(@PathVariable("userID") userID: String): ResponseEntity<ShownOrderListDTO?> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
-        println("Received GET on url='${currentRequest?.requestURL}'")
+        logger.info { "Received GET on url='${currentRequest?.requestURL}'" }
 
         // invoke the business logic
         val placed_order_list_dto = orderService.readOrderHistory(userID)
@@ -104,7 +109,7 @@ class OrderController(
     fun undoOrder(@PathVariable("orderID") orderID: String): ResponseEntity<OrderDTO> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
-        println("Received DELETE on url='${currentRequest?.requestURL}'")
+        logger.info { "Received DELETE on url='${currentRequest?.requestURL}'" }
 
         // invoke the business logic
         val cancelled_order = orderService.undoOrder(orderID)

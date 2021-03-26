@@ -26,6 +26,8 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 	implementation("io.springfox:springfox-swagger2:2.7.0")
 	implementation("io.springfox:springfox-swagger-ui:2.7.0")
+	implementation("junit:junit:4.12")
+	implementation("io.github.microutils:kotlin-logging-jvm:2.0.6")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.springframework.security:spring-security-test")
 
