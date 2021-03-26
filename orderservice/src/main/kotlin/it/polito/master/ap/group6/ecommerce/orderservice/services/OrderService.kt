@@ -411,12 +411,11 @@ class OrderServiceImpl(
                     res.body = order
                     continue
                 }
+                println("OrderService.undoDeliveries: Products restored after $i tentatives.")
                 break
-
             }
             this.cancel()
         }
-        println("OrderService.undoDeliveries: Products restored after $i tentatives.")
         return Response.deliveriesUndone()
     }
 
@@ -452,11 +451,11 @@ class OrderServiceImpl(
                     res.body = order
                     continue
                 }
+                println("OrderService.undoTransaction: Transaction undone after $i tentatives.")
                 break
             }
             this.cancel()
         }
-        println("OrderService.undoTransaction: Transaction undone after $i tentatives.")
         return Response.transactionUndone()
     }
 }
