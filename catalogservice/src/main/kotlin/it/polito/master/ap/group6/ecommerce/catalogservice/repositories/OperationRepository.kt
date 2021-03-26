@@ -19,7 +19,7 @@ import it.polito.master.ap.group6.ecommerce.catalogservice.models.User
 //======================================================================================================================
 //   Interface
 //======================================================================================================================
-@Repository("users")
+@Repository("operations")
 interface OperationRepository: MongoRepository<Operation, ObjectId> {
     // custom queries
     fun findBySagaId(sagaId: ObjectId): Optional<Operation>

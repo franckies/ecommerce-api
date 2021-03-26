@@ -55,7 +55,7 @@ class WalletServiceImpl(
 
     override fun createWallet(user: User): ExecutionResult<String> {
         // prepare data to submit
-        val user_dto: UserDTO = user.toDto()
+        val user_id: String = user.id!!
         val url: String = "http://${walletservice_url}/wallet/create"
 
         // submit remotely to the WalletService microservice
@@ -64,7 +64,7 @@ class WalletServiceImpl(
             print("Performing POST on '$url'... ")
             wallet_id = RestTemplate().postForObject(
                 url,  // url
-                user_dto,  // request
+                user_id,  // request
                 String::class.java  // responseType
             )
             println("done")
