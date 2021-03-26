@@ -79,8 +79,8 @@ For each microservice, there are reported the classes that are defined in the mi
 |---|---|---|
 |`POST /wallet/create`| request: UserDTO response: WalletID|Catalog creates a new user so that Wallet can create a correspondent entry|
 |`POST /wallet/{userID}`| request: TransactionDTO response: TransactionID|Order insert a new transaction in the `userID`'s wallet|
-|`POST /wallet/checkavailability/{userID}`| request: TransactionDTO response: TransactionID|Order checks for availability to start a new order on `userID`'s wallet|
-|`GET /wallet/performtransaction/{transactionID}`| request: TransactionID response: Boolean|Order insert a new transaction previously checked.|
+|`POST /wallet/checkavailability/{userID}`| request: TransactionDTO response: OrderID|Order checks for availability to start a new order on `userID`'s wallet|
+|`GET /wallet/performtransaction/{orderID}`| request: TransactionID |Order insert a new transaction previously checked.|
 |`GET /wallet/{userID}`| response: WalletDTO|Catalog requests`userID`'s wallet and transaction list|
 |`POST /wallet/recharge/{userID}`| request: RechargeDTO|Catalog insert in the `userID`'s wallet a recharge|
 |`GET /wallet/undo/{orderID}`| request: orderID response: transactionID| OrderService refund an order performing a rollback on the transaction.|
@@ -92,7 +92,7 @@ For each microservice, there are reported the classes that are defined in the mi
 |`POST /warehouse/products`| request: ProductAdminDTO response: ProductDTO |Catalog insert a new product in a specific warehouse |
 |`POST /warehouse/products/update/{productID}`| request: ProductAdminDTO response: ProductDTO |Catalog modifies a product in a specific warehouse (eventually updating the alarm level) |
 |`POST /warehouse/orders`| request: OrderDTO response: DeliveryListDTO |Order request a new order and receives a list of deliveries|
-|`POST /warehouse/orders/restore`| request: OrderDTO |Order deletes a previously requested order (it has been canceled by the user) |
+|`GET /warehouse/orders/restore/{orderID}`| response: orderID |Order deletes a previously requested order (it has been canceled by the user) |
 #### Order service endpoints
 |EP|Payload| Description|
 |---|---|---|
@@ -139,7 +139,7 @@ Always catched:
 |`PUT /warehouse/products/{productID}`| 404 NOT_FOUND | The product or the warehouse doesn't exists |
 |`POST /warehouse/orders`| 200 OK | Everything goes ok, the list of deliveries is retrieved |
 |`POST /warehouse/orders`| 409 CONFLICT |One or more products are not available|
-|`POST /warehouse/orders/restore`| 200 OK | Everything goes ok, the products are restored |
+|`GET /warehouse/orders/restore/{orderID}`| 200 OK | Everything goes ok, the products are restored |
 
 #### Order service endpoints
 |EP|Payload| Description|
@@ -173,3 +173,10 @@ Always catched:
 |`POST /wallet/recharge/{userID}`| 404 NOT_FOUND | The wallet doesn't exists for the user|
 |`GET /wallet/undo/{orderID}`| 404 NOT_FOUND | The order doesn't exists|
 |`GET /wallet/undo/{orderID}`| 200 OK| The order has been refunded|
+
+
+### Operation repository
+It must contain:
+- saga identifier
+- information for performing rollback (i.e. current status)
+- timestamp (optional)
