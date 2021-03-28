@@ -10,6 +10,7 @@ import java.util.*
 class Transaction (
     @Id
     var id: String? = null,
+    var orderID: String? = null,
     //val user: UserDTO? = null,
     val userID: String? = null,
     val amount: Float? = null,

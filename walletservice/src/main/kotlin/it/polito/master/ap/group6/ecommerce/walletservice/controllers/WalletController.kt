@@ -27,11 +27,11 @@ class OrderController(
      * Confirm or refuse a transaction according to products availability in the orderService
      * @return ID corresponding to the saved transaction.
      */
-    @GetMapping("/performtransaction/{transactionID}")
-    fun createTransaction(@PathVariable("transactionID") transactionID: String?): ResponseEntity<String?> {
+    @GetMapping("/performtransaction/{orderID}")
+    fun createTransaction(@PathVariable("orderID") orderID: String?): ResponseEntity<String?> {
 
-        println("WalletController.createTransaction: transaction ${transactionID} is requested for confirm/delete")
-        val transactionResult = walletService.createTransaction(transactionID)
+        println("WalletController.createTransaction: transaction ${orderID} is requested for confirm/delete")
+        val transactionResult = walletService.createTransaction(orderID)
 
         return when(transactionResult.responseId) {
             ResponseType.USER_WALLET_CONFIRM -> ResponseEntity(transactionResult.body as String, HttpStatus.OK)
@@ -132,7 +132,7 @@ class OrderController(
             ResponseType.USER_WALLET_CREATED -> ResponseEntity(walletID.body as String, HttpStatus.OK)
             ResponseType.USER_WALLET_FAILED -> ResponseEntity(null, HttpStatus.NOT_ACCEPTABLE)
 
-            else -> ResponseEntity(null, HttpStatus.NOT_FOUND)
+            else -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
         }
 
     }

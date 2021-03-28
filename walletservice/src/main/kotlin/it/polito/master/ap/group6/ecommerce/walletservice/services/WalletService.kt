@@ -14,7 +14,7 @@ import java.util.*
 
 
 interface WalletService {
-    fun createTransaction(transactionID: String?): Response
+    fun createTransaction(orderID: String?): Response
     fun undoTransaction(orderID: String?): Response
     fun checkTransaction(checkTransaction: TransactionDTO?, userID: String?): Response
     fun createRecharge(placedRecharge: RechargeDTO?, userID: String?): Response
@@ -34,16 +34,16 @@ class WalletServiceImpl(
     @Autowired private val transactionRepository: TransactionRepository
 ) : WalletService {
 
-    override fun createTransaction(transactionID: String?): Response {
+    override fun createTransaction(orderID: String?): Response {
 
         var res: Response
 
         try {
 
-            val transaction = transactionRepository.findById(transactionID!!)
+            val transaction = transactionRepository.findByOrderID(orderID!!)
             val wallet = walletRepository.findByUserID(transaction.userID!!)
 
-            wallet.transactions?.find{it.id==transactionID}?.status = TransactionStatus.ACCEPTED
+            wallet.transactions?.find{it.id==orderID}?.status = TransactionStatus.ACCEPTED
 
             transaction.status = TransactionStatus.ACCEPTED
 
@@ -69,7 +69,7 @@ class WalletServiceImpl(
 
         try {
 
-            val transaction = transactionRepository.findByCausal(orderID!!)
+            val transaction = transactionRepository.findByOrderID(orderID!!)
             val wallet = walletRepository.findByUserID(transaction.userID!!)
 
             if(transaction.status == TransactionStatus.ACCEPTED || transaction.status == TransactionStatus.PENDING){

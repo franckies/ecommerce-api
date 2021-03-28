@@ -9,13 +9,13 @@ fun Wallet.toDto(): WalletDTO {
 }
 
 fun RechargeDTO.toModel(): Transaction {
-    return Transaction(null, this.userID, this.amount, this.timestamp, this.causal, null)
+    return Transaction(null, null, this.userID, this.amount, this.timestamp, this.causal, null)
 }
 
 fun TransactionDTO.toModel(): Transaction {
-    return Transaction(null, this.userID, this.amount, this.timestamp, this.causal, this.status)
+    return Transaction(null, this.orderID, this.userID, this.amount, this.timestamp, null, this.status)
 }
 
 fun Transaction.toDto(): TransactionDTO {
-    return TransactionDTO(this.userID, this.amount, this.timestamp, this.causal, this.status)
+    return TransactionDTO(this.userID, this.orderID, this.amount, this.timestamp, this.status)
 }
