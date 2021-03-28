@@ -14,7 +14,7 @@ data class DeliveryLog(
     @Id val id: ObjectId? = null,
     val orderID : String? = null,
     val deliveries : List<DeliveryDTO>? = null,
-    val status : DeliveryLogStatus? =null, // TODO: Enum "Prodotti Spediti", "Ordine cancellato"
+    val status : DeliveryLogStatus? =null,
     val timestamp: Date? = null
 
 )
@@ -22,5 +22,4 @@ data class DeliveryLog(
 enum class DeliveryLogStatus {
     SHIPPED,
     CANCELED,
-//    NOT_AVAILABLE
 }

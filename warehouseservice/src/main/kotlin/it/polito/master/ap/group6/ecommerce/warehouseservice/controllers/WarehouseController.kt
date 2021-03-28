@@ -43,8 +43,8 @@ class WarehouseController(val warehouseService: WarehouseService) {
         val response : ResponseEntity<DeliveryListDTO?>
         val result = warehouseService.getDeliveries(orderDTO)
         if (result==null) {
-            println("WarehouseService.getDeliveries() : returning NOT FOUND.")
-            response = ResponseEntity(null, HttpStatus.NOT_FOUND)
+            println("WarehouseService.getDeliveries() : returning CONFLICT.")
+            response = ResponseEntity(null, HttpStatus.CONFLICT)
         } else {
             if (result.deliveryList!=null) {
                 println("WarehouseService.getDeliveries() : returning OK.")

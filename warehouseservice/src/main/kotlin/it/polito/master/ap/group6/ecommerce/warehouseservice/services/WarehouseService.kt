@@ -115,7 +115,17 @@ class WarehouseServiceImpl(
             else -> {
                 println("Requested products available: preparing deliveries from each warehouse")
 
-                // TODO: Check in deliveryLog if Order was already shipped??
+                val deliveryLog : Optional<DeliveryLog>
+                try {
+                    deliveryLog = deliveryLogRepository.getDeliveryLogByOrderID(orderDTO.orderID!!)
+                    if (!deliveryLog.isEmpty) {
+                        println("ERROR: This orderID was already requested for delivery.")
+                        return null
+                    }
+                } catch (e: Exception) {
+                    println("getDeliveries Exception: $e")
+                    return null
+                }
 
                 val mapDeliveries : MutableMap<String, MutableList<PurchaseDTO>> = mutableMapOf() // To be converted in DeliveryListDTO? before return
                 for (purchase in orderDTO.purchases!!) {
@@ -172,9 +182,16 @@ class WarehouseServiceImpl(
     // Assume the products and the corresponding warehouse are actually present in the DB
     override fun updateStocksAfterDeliveriesCancellation(orderID: String) : Boolean {
 
-        val deliveryLog = deliveryLogRepository.getDeliveryLogByOrderID(orderID)
+        val deliveryLog : Optional<DeliveryLog>
+        try {
+            deliveryLog = deliveryLogRepository.getDeliveryLogByOrderID(orderID)
+        }
+        catch (e: Exception) {
+            println("getDeliveries Exception: $e")
+            return false
+        }
         if (deliveryLog.isEmpty) {
-            println("ERROR: Order not found in the log repository")
+            println("ERROR: OrderID not found in the log repository")
             return false
         }
         val deliveries = deliveryLog.get().deliveries!!

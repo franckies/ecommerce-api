@@ -16,13 +16,13 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2
 class WarehouseserviceApplication(warehouseRepository: WarehouseRepository, deliveryLogRepository: DeliveryLogRepository) {
 
     init {
-        populate_collection(warehouseRepository, deliveryLogRepository)
+        populateCollections(warehouseRepository, deliveryLogRepository)
     }
 }
 
-fun populate_collection(warehouseRepository: WarehouseRepository, deliveryLogRepository: DeliveryLogRepository) {
+fun populateCollections(warehouseRepository: WarehouseRepository, deliveryLogRepository: DeliveryLogRepository) {
 
-    /*warehouseRepository.deleteAll()
+    warehouseRepository.deleteAll()
     deliveryLogRepository.deleteAll()
 
     val productList = mutableListOf<Product>().apply {
@@ -61,7 +61,7 @@ fun populate_collection(warehouseRepository: WarehouseRepository, deliveryLogRep
         )
     }
 
-    warehouseRepository.saveAll(productList)*/
+    warehouseRepository.saveAll(productList)
 
 }
 
