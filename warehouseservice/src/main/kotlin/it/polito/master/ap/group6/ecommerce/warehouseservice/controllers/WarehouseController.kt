@@ -41,7 +41,7 @@ class WarehouseController(val warehouseService: WarehouseService) {
     fun getDeliveries(@RequestBody orderDTO: OrderDTO) : ResponseEntity<DeliveryListDTO?> {
         println("WarehouseService.getDeliveries() invoked.")
         val response : ResponseEntity<DeliveryListDTO?>
-        val result = warehouseService.getDeliveries(orderDTO)
+        val result = warehouseService.getDeliveries(orderDTO.orderID!!, orderDTO.purchases)
         if (result==null) {
             println("WarehouseService.getDeliveries() : returning CONFLICT.")
             response = ResponseEntity(null, HttpStatus.CONFLICT)
