@@ -25,7 +25,10 @@ fun PurchaseDTO.toModel(): Purchase {
 }
 
 fun PlacedOrderDTO.toModel(): Order {
-    return Order(this.userID, this.purchaseList?.map { it.toModel()!! }, null, this.deliveryAddress)
+    val o: Order = Order(this.userID, this.purchaseList?.map { it.toModel()!! }, null, this.deliveryAddress)
+    //The order id coincides with the saga id, which is started from the catalogue service.
+    o.id = this.sagaID
+    return o
 }
 
 fun Delivery.toDto(): DeliveryDTO {

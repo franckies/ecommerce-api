@@ -6,14 +6,17 @@ import it.polito.master.ap.group6.ecommerce.common.dtos.TransactionDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.DeliveryStatus
 import it.polito.master.ap.group6.ecommerce.common.misc.OrderStatus
 import it.polito.master.ap.group6.ecommerce.common.misc.TransactionStatus
+import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.OrderLoggerStatus
 import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.Response
 import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.ResponseType
 import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.Utility
 import it.polito.master.ap.group6.ecommerce.orderservice.models.Delivery
 import it.polito.master.ap.group6.ecommerce.orderservice.models.Order
+import it.polito.master.ap.group6.ecommerce.orderservice.models.OrderLogger
 import it.polito.master.ap.group6.ecommerce.orderservice.models.dtos.toDto
 import it.polito.master.ap.group6.ecommerce.orderservice.models.dtos.toModel
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.DeliveryRepository
+import it.polito.master.ap.group6.ecommerce.orderservice.repositories.OrderLoggerRepository
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.OrderRepository
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
@@ -35,11 +38,11 @@ interface OrderService {
     fun getOrdersByUser(userID: String): Response
     fun cancelOrder(orderID: ObjectId): Response
 
-    fun checkWallet(order: Order): Response
-    fun completeTransaction(transactionId: String, order: Order): Response
-    fun submitOrder(order: Order): Response
-    fun undoDeliveries(order: Order): Response
-    fun undoTransaction(order: Order): Response
+    fun checkWallet(orderID: ObjectId): Response
+    fun completeTransaction(transactionId: String, orderID: ObjectId): Response
+    fun submitOrder(orderID: ObjectId): Response
+    fun undoDeliveries(orderID: ObjectId): Response
+    fun undoTransaction(orderID: ObjectId): Response
 }
 
 /**
@@ -54,7 +57,8 @@ interface OrderService {
 class OrderServiceImpl(
     @Autowired private val orderRepository: OrderRepository,
     @Autowired private val deliveryRepository: DeliveryRepository,
-    @Autowired private val deliveryService: DeliveryService
+    @Autowired private val deliveryService: DeliveryService,
+    @Autowired private val orderLoggerRepository: OrderLoggerRepository
 ) : OrderService {
 
     /**
@@ -68,45 +72,51 @@ class OrderServiceImpl(
      */
     override fun createOrder(placedOrder: PlacedOrderDTO): Response {
         //Create the order in PENDING status (no checks have been performed yet)
+        //The order ID coincides with the saga id which is given by the catalog service
         var order = placedOrder.toModel()
         order.status = OrderStatus.PENDING
-        order = orderRepository.save(order) //reassign because save gives to order an id
+        order = orderRepository.save(order)
+        orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.PENDING, Date()))
 
         //STEP 1: check if there are enough money and lock them on the user wallet
-        val step1 = checkWallet(order)
+        val step1 = checkWallet(ObjectId(order.id))
         if (step1.responseId != ResponseType.MONEY_LOCKED) {
             order.status = OrderStatus.FAILED
             orderRepository.save(order)
             val res = Response.notEnoughMoney()
             res.body = order.toDto()
+            orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.CHECK_WALLET_FAILED, Date()))
             return res
         }
-
+        orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.CHECK_WALLET_COMPLETED, Date()))
         //STEP 2: if there are enough money, submit the order and create the needed deliveries in PENDING status
-        val step2 = submitOrder(order)
+        val step2 = submitOrder(ObjectId(order.id))
         if (step2.responseId != ResponseType.ORDER_SUBMITTED) {
             order.status = OrderStatus.FAILED
             orderRepository.save(order)
             val res = Response.productNotAvailable()
             res.body = order.toDto()
+            orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.SUBMIT_ORDER_FAILED, Date()))
             return res
             //return order.toDto() //Return if there aren't enough products or the warehouse service is down
         }
-
+        orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.SUBMIT_ORDER_COMPLETED, Date()))
         //STEP 3: complete the transaction if the delivery has started and mark order as paid. It also takes
         //care of canceling all the pending deliveries created in the STEP 2.
-        val step3 = completeTransaction(step1.body as String, order)
+        val step3 = completeTransaction(step1.body as String, ObjectId(order.id))
         if (step3.responseId != ResponseType.ORDER_CONFIRMED) {
             order.status = OrderStatus.FAILED
             orderRepository.save(order)
             val res = Response.notEnoughMoney()
             res.body = order.toDto()
+            orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.COMPLETE_TRANSACTION_FAILED, Date()))
             return res
         }
-
+        orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.COMPLETE_TRANSACTION_COMPLETED, Date()))
         order.status = OrderStatus.PAID
         order = orderRepository.save(order)
 
+        orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.PAID, Date()))
         /**
          * Start the coroutine handling the delivery simulation.
          * If the order get CANCELED in the PAID status, the coroutine CANCEL all the associated deliveries.
@@ -205,10 +215,11 @@ class OrderServiceImpl(
         val order = orderOptional.get()
         if (order.status == OrderStatus.PAID) {
             order.status = OrderStatus.CANCELED
+            orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.CANCELED, Date()))
             orderRepository.save(order)
             //Cascade update on the deliveries associated to this order and undone of the transaction
-            undoDeliveries(order)
-            undoTransaction(order)
+            undoDeliveries(ObjectId(order.id))
+            undoTransaction(ObjectId(order.id))
             println("OrderService.cancelOrder: Order ${order.id} canceled!")
         } else {
             println("OrderService.cancelOrder: Cannot cancel the order ${order.id}!")
@@ -221,15 +232,16 @@ class OrderServiceImpl(
     /**
      * Check if the transaction can be performed, i.e. the user has enough money. The amount will be "Locked" but not
      * yet taken from the user's wallet.
-     * @param order, the order corresponding to the transaction that will be created.
+     * @param orderID, the order corresponding to the transaction that will be created.
      * @return a Response instance having a status code corresponding to the event that occurred.
      */
-    override fun checkWallet(order: Order): Response {
+    override fun checkWallet(orderID: ObjectId): Response {
+        val order: Order = orderRepository.findById(orderID).get()
         val wallet = "localhost:8083"
         val restTemplate = RestTemplate()
         val transactionId: String?
         val transaction =
-            TransactionDTO(order.buyerId, order.price, Date(), "${order.id}", TransactionStatus.PENDING)
+            TransactionDTO(order.id, order.buyerId, order.price, Date(), TransactionStatus.PENDING)
 
         try {
             transactionId = restTemplate.postForObject(
@@ -270,10 +282,11 @@ class OrderServiceImpl(
      * In this case, a list of deliveries for each warehouse from which the products are coming is retrieved,
      * and all the deliveries are saved in the database with a PENDING status. If there aren't enough products
      * or the warehouse is not responding, the wallet is informed to restore the blocked transaction
-     * @param order the order that has been requested by catalog service.
+     * @param orderID the order that has been requested by catalog service.
      * @return a Response instance having a status code corresponding to the event that occurred.
      */
-    override fun submitOrder(order: Order): Response {
+    override fun submitOrder(orderID: ObjectId): Response {
+        val order: Order = orderRepository.findById(orderID).get()
         val warehouse = "localhost:8084"
 
         val deliveryList: DeliveryListDTO?
@@ -286,17 +299,17 @@ class OrderServiceImpl(
             return when (e.statusCode) {
                 HttpStatus.CONFLICT -> {
                     println("OrderService.submitOrder: One or more products are not available in the warehouses.")
-                    undoTransaction(order) //Tell wallet to restore the transaction
+                    undoTransaction(ObjectId(order.id)) //Tell wallet to restore the transaction
                     Response.productNotAvailable()
                 }
                 HttpStatus.NOT_FOUND ->{
                     println("OrderService.submitOrder: One or more products do not exist in the database.")
-                    undoTransaction(order) //Tell wallet to restore the transaction
+                    undoTransaction(ObjectId(order.id)) //Tell wallet to restore the transaction
                     Response.productNotAvailable()
                 }
                 else -> {
                     println("OrderService.submitOrder: An unknown error occurred.")
-                    undoTransaction(order) //Tell wallet to restore the transaction
+                    undoTransaction(ObjectId(order.id)) //Tell wallet to restore the transaction
                     Response.cannotReachTheMS()
                 }
             }
@@ -330,22 +343,22 @@ class OrderServiceImpl(
      * CANCEL all the deliveries in the PENDING status created in the STEP 2 and inform
      * the warehouse service to restore the products.
      * @param transactionId, the id of the transaction to be completed
-     * @param order, the order associated to the transaction performed
+     * @param orderID, the order associated to the transaction performed
      * @return a Response instance having a status code corresponding to the event that occurred.
      */
-    override fun completeTransaction(transactionId: String, order: Order): Response {
+    override fun completeTransaction(transactionId: String, orderID: ObjectId): Response {
+        val order: Order = orderRepository.findById(orderID).get()
         val wallet = "localhost:8083"
-        var transactionConfirmationId: String?
+        val orderConfirmationID: String?
 
         try {
-            transactionConfirmationId = RestTemplate().getForObject(
-                "http://${wallet}/wallet/performtransaction/$transactionId", //"https://api.mocki.io/v1/f4359b2e",
+            orderConfirmationID = RestTemplate().getForObject(
+                "http://${wallet}/wallet/performtransaction/${order.id}", //"https://api.mocki.io/v1/f4359b2e",
                 String::class.java
             )
         } catch (e: HttpClientErrorException) {
             //if something goes wrong cancel also deliveries associated with the order
-            undoDeliveries(order)
-            transactionConfirmationId = ""
+            undoDeliveries(ObjectId(order.id))
             return when (e.statusCode) {
                 HttpStatus.CONFLICT -> {
                     println("OrderService.completeTransaction: The transaction $transactionId cannot be confirmed.")
@@ -361,28 +374,26 @@ class OrderServiceImpl(
                 }
             }
         } catch (e: ResourceAccessException) {
-            transactionConfirmationId =""
             //if something goes wrong cancel also deliveries associated with the order
-            undoDeliveries(order)
+            undoDeliveries(ObjectId(order.id))
             println("OrderService.completeTransaction: [${e.cause}]. Cannot contact the wallet service to perform the transaction.")
             return Response.cannotReachTheMS()
         } catch (e: Exception) {
-            transactionConfirmationId = ""
             //if something goes wrong cancel also deliveries associated with the order
-            undoDeliveries(order)
+            undoDeliveries(ObjectId(order.id))
             println("OrderService.completeTransaction: [${e.cause}]. An unknown error occurred.")
             return Response.cannotReachTheMS()
         }
 
         println("OrderService.completeTransaction: The order ${order.id} is confirmed.")
         val res = Response.orderConfirmed()
-        res.body = transactionConfirmationId
+        res.body = orderConfirmationID
         return res
     }
 
-    override fun undoDeliveries(order: Order): Response {
+    override fun undoDeliveries(orderID: ObjectId): Response {
         val warehouse = "localhost:8084"
-        var res: Response
+        val order = orderRepository.findById(orderID).get()
         var i: Int = 0
         //try to contact warehouse until the product is restored
         GlobalScope.launch {
@@ -419,7 +430,9 @@ class OrderServiceImpl(
         return Response.deliveriesUndone()
     }
 
-    override fun undoTransaction(order: Order): Response {
+    override fun undoTransaction(orderID: ObjectId): Response {
+        val order = orderRepository.findById(orderID).get()
+
         val wallet = "localhost:8083"
         var res: Response
         var i: Int = 0

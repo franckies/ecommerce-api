@@ -3,9 +3,12 @@ package it.polito.master.ap.group6.ecommerce.orderservice.services
 import it.polito.master.ap.group6.ecommerce.common.dtos.DeliveryListDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.DeliveryStatus
 import it.polito.master.ap.group6.ecommerce.common.misc.OrderStatus
+import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.OrderLoggerStatus
 import it.polito.master.ap.group6.ecommerce.orderservice.models.Order
+import it.polito.master.ap.group6.ecommerce.orderservice.models.OrderLogger
 import it.polito.master.ap.group6.ecommerce.orderservice.models.dtos.toDto
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.DeliveryRepository
+import it.polito.master.ap.group6.ecommerce.orderservice.repositories.OrderLoggerRepository
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.OrderRepository
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
@@ -29,7 +32,8 @@ import java.util.*
 @Transactional
 class DeliveryService(
     @Autowired private val orderRepository: OrderRepository,
-    @Autowired private val deliveryRepository: DeliveryRepository
+    @Autowired private val deliveryRepository: DeliveryRepository,
+    @Autowired private val orderLoggerRepository: OrderLoggerRepository
 ) {
     fun startDeliveries(orderID: String): Unit {
         //After a while update randomly a delivery status for testing
@@ -79,6 +83,7 @@ class DeliveryService(
                     if (order.status == OrderStatus.PAID) {
                         order.status = OrderStatus.DELIVERING
                         orderRepository.save(order)
+                        orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.DELIVERING, Date()))
                     }
                     println("DeliveryService.startDeliveries: The delivery ${randomDelivery.get().id} associated to the order ${order.id} has been shipped.")
                 }
