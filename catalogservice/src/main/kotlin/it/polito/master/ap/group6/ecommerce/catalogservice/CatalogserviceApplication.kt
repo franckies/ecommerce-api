@@ -21,6 +21,7 @@ import it.polito.master.ap.group6.ecommerce.catalogservice.services.UserService
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.WalletService
 import it.polito.master.ap.group6.ecommerce.common.dtos.RechargeDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.UserRole
+import org.springframework.kafka.core.KafkaTemplate
 
 
 //======================================================================================================================
@@ -33,6 +34,9 @@ class CatalogserviceApplication(
 	walletService: WalletService
 ) {
 	init {
+		// check for pending transactions
+		//TODO
+
 		// clear table
 		userService.clear()
 

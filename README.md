@@ -70,7 +70,8 @@ For each microservice, there are reported the classes that are defined in the mi
 |`POST /catalog/products/admin`| request: ProductAdminDTO response: ProductDTO |Admin adds a product specifying the warehouse|
 |`PUT /catalog/products/admin/{productID}`| request: ProductAdminDTO response: ProductDTO |Admin modify information of an existing product (eventually updating the alarm level)|
 |`GET /catalog/orders/{userID}`| response: ShownOrderListDTO |Shows the orders associated with `userID`|
-|`POST /catalog/orders/{userID}`| request: PlacedOrderDTO |Create an order for the `userID` user with the details specified in `PlacedOrderDTO`|
+|`POST /catalog/orders/{userID}/orchestrator`| request: PlacedOrderDTO |Create an order for the `userID` user with the details specified in `PlacedOrderDTO` (synchronous manner)|
+|`POST /catalog/orders/{userID}/choreography`| request: PlacedOrderDTO |Create an order for the `userID` user with the details specified in `PlacedOrderDTO` (asynchronous manner)|
 |`GET /catalog/orders/delete/{orderID}`| response: OrderDTO |Cancel an order `orderID` for the currently logged user (update its STATUS)|
 |`GET /catalog/wallet/{userID}`| response: WalletDTO |Retrieve the wallet information (total and transaction list) for the currently logged user|
 |`POST /catalog/wallet/admin/recharge/{userID}`| request: RechargeDTO |Recharge the user specified in `userID`|
@@ -99,7 +100,8 @@ For each microservice, there are reported the classes that are defined in the mi
 |`POST /order/orders/`| request: PlacedOrderDTO response: OrderDTO|Catalog insert a new order. The newly created order is returned, having STATUS PAID or FAILED|
 |`GET /order/{userID}/orders`| response: ShownOrderListDTO |Catalog requests the orders of `userID`|
 |`GET /order/orders/{orderID}`| response: ShownOrderDTO |Catalog requests the order `orderID`|
-|`GET /order/delete/{orderID}`| response: OrderDTO |Catalog requests to cancel the order `orderID` (updating its STATUS, if it has not been shipped yet)|
+|`GET /order/delete/{orderID}/orchestrator`| response: OrderDTO |Catalog requests to cancel the order `orderID` (updating its STATUS, if it has not been shipped yet) (synchronous manner)|
+|`GET /order/delete/{orderID}/choreography`| response: OrderDTO |Catalog requests to cancel the order `orderID` (updating its STATUS, if it has not been shipped yet) (asynchronous manner)|
 
 ### DTOs definition
 ```

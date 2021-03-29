@@ -29,7 +29,11 @@ dependencies {
 	implementation("junit:junit:4.12")
 	implementation("io.github.microutils:kotlin-logging-jvm:2.0.6")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
-	testImplementation("org.springframework.security:spring-security-test")
+	//testImplementation("org.springframework.security:spring-security-test")
+	testImplementation("org.springframework.security:spring-security-test:4.2.3.RELEASE")
+
+	implementation("org.apache.kafka:kafka-streams")
+	implementation("org.springframework.kafka:spring-kafka")
 
 	implementation(project(":common"))
 }
