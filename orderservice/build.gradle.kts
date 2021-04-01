@@ -30,6 +30,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
+    implementation("org.apache.kafka:kafka-streams")
+    implementation("org.springframework.kafka:spring-kafka")
 
     implementation(project(":common"))
 }

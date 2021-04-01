@@ -26,6 +26,7 @@ import java.util.*
  * the delivery status and the order status consequently.
  * @param orderRepository a reference to the Repository handling the database interaction for orders.
  * @param deliveryRepository a reference to the Repository handling the database interaction for deliveries.
+ * @param orderLoggerRepository a reference to the Repository handling the logging of the order for rollbacks
  * @author Francesco Semeraro
  */
 @Service

@@ -6,17 +6,14 @@ import it.polito.master.ap.group6.ecommerce.common.dtos.TransactionDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.DeliveryStatus
 import it.polito.master.ap.group6.ecommerce.common.misc.OrderStatus
 import it.polito.master.ap.group6.ecommerce.common.misc.TransactionStatus
-import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.OrderLoggerStatus
 import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.Response
 import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.ResponseType
 import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.Utility
 import it.polito.master.ap.group6.ecommerce.orderservice.models.Delivery
 import it.polito.master.ap.group6.ecommerce.orderservice.models.Order
-import it.polito.master.ap.group6.ecommerce.orderservice.models.OrderLogger
 import it.polito.master.ap.group6.ecommerce.orderservice.models.dtos.toDto
 import it.polito.master.ap.group6.ecommerce.orderservice.models.dtos.toModel
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.DeliveryRepository
-import it.polito.master.ap.group6.ecommerce.orderservice.repositories.OrderLoggerRepository
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.OrderRepository
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
@@ -32,7 +29,7 @@ import org.springframework.web.client.ResourceAccessException
 import org.springframework.web.client.RestTemplate
 import java.util.*
 
-interface OrderService {
+interface OrderServiceSync {
     fun createOrder(placedOrder: PlacedOrderDTO): Response
     fun getOrder(orderID: ObjectId): Response
     fun getOrdersByUser(userID: String): Response
@@ -54,12 +51,11 @@ interface OrderService {
  */
 @Service
 @Transactional
-class OrderServiceImpl(
+class OrderServiceSyncImpl(
     @Autowired private val orderRepository: OrderRepository,
     @Autowired private val deliveryRepository: DeliveryRepository,
     @Autowired private val deliveryService: DeliveryService,
-    @Autowired private val orderLoggerRepository: OrderLoggerRepository
-) : OrderService {
+) : OrderServiceSync {
 
     /**
      * Create an order inserting it into the database. The order will have a FAILED status if the user hasn't enough
@@ -76,7 +72,6 @@ class OrderServiceImpl(
         var order = placedOrder.toModel()
         order.status = OrderStatus.PENDING
         order = orderRepository.save(order)
-        orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.PENDING, Date()))
 
         //STEP 1: check if there are enough money and lock them on the user wallet
         val step1 = checkWallet(ObjectId(order.id))
@@ -85,10 +80,8 @@ class OrderServiceImpl(
             orderRepository.save(order)
             val res = Response.notEnoughMoney()
             res.body = order.toDto()
-            orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.CHECK_WALLET_FAILED, Date()))
             return res
         }
-        orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.CHECK_WALLET_COMPLETED, Date()))
         //STEP 2: if there are enough money, submit the order and create the needed deliveries in PENDING status
         val step2 = submitOrder(ObjectId(order.id))
         if (step2.responseId != ResponseType.ORDER_SUBMITTED) {
@@ -96,11 +89,9 @@ class OrderServiceImpl(
             orderRepository.save(order)
             val res = Response.productNotAvailable()
             res.body = order.toDto()
-            orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.SUBMIT_ORDER_FAILED, Date()))
             return res
             //return order.toDto() //Return if there aren't enough products or the warehouse service is down
         }
-        orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.SUBMIT_ORDER_COMPLETED, Date()))
         //STEP 3: complete the transaction if the delivery has started and mark order as paid. It also takes
         //care of canceling all the pending deliveries created in the STEP 2.
         val step3 = completeTransaction(step1.body as String, ObjectId(order.id))
@@ -109,14 +100,11 @@ class OrderServiceImpl(
             orderRepository.save(order)
             val res = Response.notEnoughMoney()
             res.body = order.toDto()
-            orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.COMPLETE_TRANSACTION_FAILED, Date()))
             return res
         }
-        orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.COMPLETE_TRANSACTION_COMPLETED, Date()))
         order.status = OrderStatus.PAID
         order = orderRepository.save(order)
 
-        orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.PAID, Date()))
         /**
          * Start the coroutine handling the delivery simulation.
          * If the order get CANCELED in the PAID status, the coroutine CANCEL all the associated deliveries.
@@ -139,7 +127,7 @@ class OrderServiceImpl(
         val deliveries = deliveryRepository.findByOrderID(orderID.toString())
         val orderOptional = orderRepository.findById(orderID)
         if (orderOptional.isEmpty) {
-            println("OrderService.getOrder: the order $orderID cannot be found.")
+            println("OrderServiceSync.getOrder: the order $orderID cannot be found.")
             return Response.orderCannotBeFound() //if the order doesn't exist, return
         }
 
@@ -209,20 +197,19 @@ class OrderServiceImpl(
     override fun cancelOrder(orderID: ObjectId): Response {
         val orderOptional = orderRepository.findById(orderID)
         if (orderOptional.isEmpty) {
-            println("OrderService.cancelOrder: The order $orderID cannot be found.")
+            println("OrderServiceSync.cancelOrder: The order $orderID cannot be found.")
             return Response.orderCannotBeFound()
         }
         val order = orderOptional.get()
         if (order.status == OrderStatus.PAID) {
             order.status = OrderStatus.CANCELED
-            orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.CANCELED, Date()))
             orderRepository.save(order)
             //Cascade update on the deliveries associated to this order and undone of the transaction
             undoDeliveries(ObjectId(order.id))
             undoTransaction(ObjectId(order.id))
-            println("OrderService.cancelOrder: Order ${order.id} canceled!")
+            println("OrderServiceSync.cancelOrder: Order ${order.id} canceled!")
         } else {
-            println("OrderService.cancelOrder: Cannot cancel the order ${order.id}!")
+            println("OrderServiceSync.cancelOrder: Cannot cancel the order ${order.id}!")
         }
         val res = Response.orderFound()
         res.body = order.toDto()
@@ -251,27 +238,27 @@ class OrderServiceImpl(
         } catch (e: HttpClientErrorException) {
             return when (e.statusCode) {
                 HttpStatus.CONFLICT -> {
-                    println("OrderService.checkWallet: The user ${order.buyerId}  has not enough money to purchase the order.")
+                    println("OrderServiceSync.checkWallet: The user ${order.buyerId}  has not enough money to purchase the order.")
                     Response.notEnoughMoney()
                 }
                 HttpStatus.NOT_FOUND -> {
-                    println("OrderService.checkWallet: the user ${order.buyerId} has not a created wallet.")
+                    println("OrderServiceSync.checkWallet: the user ${order.buyerId} has not a created wallet.")
                     Response.walletNotFound()
                 }
                 else -> {
-                    println("OrderService.checkWallet: An unknown error occurred.")
+                    println("OrderServiceSync.checkWallet: An unknown error occurred.")
                     Response.cannotReachTheMS()
                 }
             }
         } catch (e: ResourceAccessException) {
-            println("OrderService.checkWallet: [${e.cause}]. Cannot contact the wallet service to check the availability.")
+            println("OrderServiceSync.checkWallet: [${e.cause}]. Cannot contact the wallet service to check the availability.")
             return Response.cannotReachTheMS()
         } catch (e: Exception) {
-            println("OrderService.checkWallet: [${e.cause}]. An unknown error occurred.")
+            println("OrderServiceSync.checkWallet: [${e.cause}]. An unknown error occurred.")
             return Response.cannotReachTheMS()
         }
 
-        println("OrderService.checkWallet: ${transaction.amount} $ locked on the user ${order.buyerId}' s wallet.")
+        println("OrderServiceSync.checkWallet: ${transaction.amount} $ locked on the user ${order.buyerId}' s wallet.")
         val res = Response.moneyLocked()
         res.body = transactionId
         return res
@@ -298,26 +285,26 @@ class OrderServiceImpl(
         } catch (e: HttpClientErrorException) {
             return when (e.statusCode) {
                 HttpStatus.CONFLICT -> {
-                    println("OrderService.submitOrder: One or more products are not available in the warehouses.")
+                    println("OrderServiceSync.submitOrder: One or more products are not available in the warehouses.")
                     undoTransaction(ObjectId(order.id)) //Tell wallet to restore the transaction
                     Response.productNotAvailable()
                 }
-                HttpStatus.NOT_FOUND ->{
-                    println("OrderService.submitOrder: One or more products do not exist in the database.")
+                HttpStatus.NOT_FOUND -> {
+                    println("OrderServiceSync.submitOrder: One or more products do not exist in the database.")
                     undoTransaction(ObjectId(order.id)) //Tell wallet to restore the transaction
                     Response.productNotAvailable()
                 }
                 else -> {
-                    println("OrderService.submitOrder: An unknown error occurred.")
+                    println("OrderServiceSync.submitOrder: An unknown error occurred.")
                     undoTransaction(ObjectId(order.id)) //Tell wallet to restore the transaction
                     Response.cannotReachTheMS()
                 }
             }
         } catch (e: ResourceAccessException) {
-            println("OrderService.submitOrder: [${e.cause}]. Cannot contact the warehouse service to retrieve the products.")
+            println("OrderServiceSync.submitOrder: [${e.cause}]. Cannot contact the warehouse service to retrieve the products.")
             return Response.cannotReachTheMS()
         } catch (e: Exception) {
-            println("OrderService.submitOrder: [${e.cause}]. An unknown error occurred.")
+            println("OrderServiceSync.submitOrder: [${e.cause}]. An unknown error occurred.")
             return Response.cannotReachTheMS()
         }
 
@@ -333,7 +320,7 @@ class OrderServiceImpl(
                 )
             )
         }
-        println("OrderService.submitOrder: ${deliveryList.deliveryList!!.size} deliveries have been scheduled for the order ${order.id}.")
+        println("OrderServiceSync.submitOrder: ${deliveryList.deliveryList!!.size} deliveries have been scheduled for the order ${order.id}.")
         return Response.orderSubmitted()
     }
 
@@ -361,31 +348,31 @@ class OrderServiceImpl(
             undoDeliveries(ObjectId(order.id))
             return when (e.statusCode) {
                 HttpStatus.CONFLICT -> {
-                    println("OrderService.completeTransaction: The transaction $transactionId cannot be confirmed.")
+                    println("OrderServiceSync.completeTransaction: The transaction $transactionId cannot be confirmed.")
                     Response.notEnoughMoney()
                 }
                 HttpStatus.NOT_FOUND -> {
-                    println("OrderService.completeTransaction: the transaction $transactionId does not exist.")
+                    println("OrderServiceSync.completeTransaction: the transaction $transactionId does not exist.")
                     Response.walletNotFound()
                 }
                 else -> {
-                    println("OrderService.completeTransaction: An unknown error occurred.")
+                    println("OrderServiceSync.completeTransaction: An unknown error occurred.")
                     Response.cannotReachTheMS()
                 }
             }
         } catch (e: ResourceAccessException) {
             //if something goes wrong cancel also deliveries associated with the order
             undoDeliveries(ObjectId(order.id))
-            println("OrderService.completeTransaction: [${e.cause}]. Cannot contact the wallet service to perform the transaction.")
+            println("OrderServiceSync.completeTransaction: [${e.cause}]. Cannot contact the wallet service to perform the transaction.")
             return Response.cannotReachTheMS()
         } catch (e: Exception) {
             //if something goes wrong cancel also deliveries associated with the order
             undoDeliveries(ObjectId(order.id))
-            println("OrderService.completeTransaction: [${e.cause}]. An unknown error occurred.")
+            println("OrderServiceSync.completeTransaction: [${e.cause}]. An unknown error occurred.")
             return Response.cannotReachTheMS()
         }
 
-        println("OrderService.completeTransaction: The order ${order.id} is confirmed.")
+        println("OrderServiceSync.completeTransaction: The order ${order.id} is confirmed.")
         val res = Response.orderConfirmed()
         res.body = orderConfirmationID
         return res
@@ -412,17 +399,17 @@ class OrderServiceImpl(
                         String::class.java
                     )
                 } catch (e: ResourceAccessException) {
-                    println("OrderService.undoDeliveries: [${e.cause}]. Cannot contact the warehouse service to restore the products.")
+                    println("OrderServiceSync.undoDeliveries: [${e.cause}]. Cannot contact the warehouse service to restore the products.")
                     val res = Response.cannotRestoreProducts()
                     res.body = order
                     continue
                 } catch (e: Exception) {
-                    println("OrderService.undoDeliveries: [${e.cause}]. An unknown error occurred.")
+                    println("OrderServiceSync.undoDeliveries: [${e.cause}]. An unknown error occurred.")
                     val res = Response.cannotRestoreProducts()
                     res.body = order
                     continue
                 }
-                println("OrderService.undoDeliveries: Products restored after $i tentatives.")
+                println("OrderServiceSync.undoDeliveries: Products restored after $i tentatives.")
                 break
             }
             this.cancel()
@@ -454,17 +441,17 @@ class OrderServiceImpl(
                     }
                     continue
                 } catch (e: ResourceAccessException) {
-                    println("OrderService.undoTransaction: [${e.cause}]. Cannot contact the wallet service to restore the money.")
+                    println("OrderServiceSync.undoTransaction: [${e.cause}]. Cannot contact the wallet service to restore the money.")
                     res = Response.cannotRestoreMoney()
                     res.body = order
                     continue
                 } catch (e: Exception) {
-                    println("OrderService.undoTransaction: [${e.cause}]. An unknown error occurred.")
+                    println("OrderServiceSync.undoTransaction: [${e.cause}]. An unknown error occurred.")
                     res = Response.cannotRestoreMoney()
                     res.body = order
                     continue
                 }
-                println("OrderService.undoTransaction: Transaction undone after $i tentatives.")
+                println("OrderServiceSync.undoTransaction: Transaction undone after $i tentatives.")
                 break
             }
             this.cancel()
