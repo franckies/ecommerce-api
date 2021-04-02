@@ -109,7 +109,8 @@ class OrderController(
                 else -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
             }
         } catch (e: IllegalArgumentException) {
-            println("OrderController.cancelOrder: The order $orderID cannot be found because the id is not in a valid format.")
+            println("OrderController.canc" +
+                    ".elOrder: The order $orderID cannot be found because the id is not in a valid format.")
             return ResponseEntity(null, HttpStatus.NOT_FOUND)
         }
     }

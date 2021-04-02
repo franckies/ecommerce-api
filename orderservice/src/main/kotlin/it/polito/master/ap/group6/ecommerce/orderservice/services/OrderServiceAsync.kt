@@ -16,6 +16,9 @@ import it.polito.master.ap.group6.ecommerce.orderservice.models.dtos.toModel
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.DeliveryRepository
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.OrderLoggerRepository
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.OrderRepository
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.bson.types.ObjectId
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.kafka.core.KafkaTemplate
@@ -67,6 +70,22 @@ class OrderServiceAsyncImpl(
         orderRepository.save(order)
 
         orderLoggerRepository.save(OrderLogger(placedOrder.sagaID, OrderLoggerStatus.PENDING, Date()))
+
+        //timer for the other services to answer
+        GlobalScope.launch(){
+            delay(120_000L)
+            val orderLogger = orderLoggerRepository.findById(ObjectId(order.id))
+            if(orderLogger.isPresent){
+                when(orderLogger.get().orderStatus){
+                    OrderLoggerStatus.PENDING -> kafkaTemplate.send("rollback", orderLogger.get().orderID)
+                    OrderLoggerStatus.DELIVERY_OK -> kafkaTemplate.send("rollback", orderLogger.get().orderID)
+                    OrderLoggerStatus.TRANSACTION_OK -> kafkaTemplate.send("rollback", orderLogger.get().orderID)
+                    else -> println("OrderServiceAsync.createOrder: timer expired and all is ok.")
+                }
+            }
+
+        }
+
         return Response.orderCreated()
     }
 
