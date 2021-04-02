@@ -63,7 +63,7 @@ class MailListener(
         }
     }
 
-    @KafkaListener(groupId = "ecommerce", topics = ["order_tracking"])
+    @KafkaListener(groupId = "ecommerce", topics = ["alarm_level"])
     fun sendAlarmMail(alarmInfo: String) {
         val optionalAdmins = mailingRepository.findUserDTOByRole("ADMIN")
         if (optionalAdmins.isEmpty) {
