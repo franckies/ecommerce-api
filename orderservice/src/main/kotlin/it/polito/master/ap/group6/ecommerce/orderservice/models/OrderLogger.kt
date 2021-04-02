@@ -1,6 +1,5 @@
 package it.polito.master.ap.group6.ecommerce.orderservice.models
 
-import it.polito.master.ap.group6.ecommerce.common.misc.OrderStatus
 import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.OrderLoggerStatus
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
