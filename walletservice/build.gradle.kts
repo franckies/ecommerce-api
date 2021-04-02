@@ -29,7 +29,8 @@ dependencies {
     implementation("io.springfox:springfox-swagger-ui:2.7.0")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
-
+    implementation("org.apache.kafka:kafka-streams")
+    implementation("org.springframework.kafka:spring-kafka")
     implementation(project(":common"))
 }
 
