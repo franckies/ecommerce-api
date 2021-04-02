@@ -21,7 +21,7 @@ import it.polito.master.ap.group6.ecommerce.common.misc.UserRole
 //   Abstract declaration
 //======================================================================================================================
 interface UserService {
-    fun create(name: String, surname: String, username: String, password: String,
+    fun create(name: String, surname: String, username: String, password: String, email: String?,
                deliveryAddress: String? = null, role: UserRole = UserRole.CUSTOMER): User
 
     fun get(userID: ObjectId): Optional<User>
@@ -58,11 +58,12 @@ class UserServiceImpl(
         surname: String,
         username: String,
         password: String,
+        email: String?,
         deliveryAddress: String?,
         role: UserRole
     ): User {
         // create live object
-        val user = User(name, surname, username, password, deliveryAddress, role)
+        val user = User(name, surname, username, password, deliveryAddress, email, role)
 
         // store in database
         val user_with_id = userRepository.save(user)

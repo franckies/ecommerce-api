@@ -13,15 +13,16 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager
 import springfox.documentation.swagger2.annotations.EnableSwagger2
 import org.springframework.context.support.beans
 import java.util.*
+import org.springframework.kafka.core.KafkaTemplate
 
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.models.User
 import it.polito.master.ap.group6.ecommerce.catalogservice.models.dtos.toDto
+import it.polito.master.ap.group6.ecommerce.catalogservice.services.MailingService
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.UserService
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.WalletService
 import it.polito.master.ap.group6.ecommerce.common.dtos.RechargeDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.UserRole
-import org.springframework.kafka.core.KafkaTemplate
 
 
 //======================================================================================================================
@@ -31,7 +32,8 @@ import org.springframework.kafka.core.KafkaTemplate
 @EnableSwagger2
 class CatalogserviceApplication(
 	userService: UserService,
-	walletService: WalletService
+	walletService: WalletService,
+	mailingService: MailingService
 ) {
 	init {
 		// check for pending transactions
@@ -42,11 +44,11 @@ class CatalogserviceApplication(
 
 		// populate User table
 		val userList = mutableListOf<User>(
-			userService.create("Nicolò", "Chiapello", "nico", "123", "Corso Duca degli Abruzzi"),
-			userService.create("Francesco", "Semeraro", "fra", "456", "Headquarter K1"),
-			userService.create("Andrea", "Biondo", "andre", "789", "Casa Biondo"),
-			userService.create("Raffaele", "Martone", "raffa", "741", "Porta Susa"),
-			userService.create("Govanni", "Malnati", "giova", "963", role = UserRole.ADMIN)
+			userService.create("Nicolò", "Chiapello", "nico", "123", "dinicchia@yahoo.it","Corso Duca degli Abruzzi"),
+			userService.create("Francesco", "Semeraro", "fra", "456", "f.semeraro@reply.it", "Headquarter K1"),
+			userService.create("Andrea", "Biondo", "andre", "789", "a.biondo@reply.it","Casa Biondo"),
+			userService.create("Raffaele", "Martone", "raffa", "741", "raf.martone22@gmail.com", "Porta Susa"),
+			userService.create("Govanni", "Malnati", "giova", "963", "franckiesuper@gmail.com", role = UserRole.ADMIN)
 		)
 
 		// inform the WalletService
@@ -55,7 +57,7 @@ class CatalogserviceApplication(
 				walletService.createWallet(user)
 				walletService.issueRecharge(user.id!!, RechargeDTO(user.id, 10_000f, Date(), "initial recharge"))
 			}
-
+			mailingService.createUserMail(user)
 		}
 	}
 }

@@ -35,6 +35,7 @@ class User {
 
     var name: String? = null
     var surname: String? = null
+    var email: String? = null
 
     var username: String? = null
     var password: String? = null
@@ -44,10 +45,11 @@ class User {
 
     //------- constructors -----------------------------------------------------
     constructor(name: String, surname: String, username: String?, password: String?,
-                deliveryAddress: String? = null, role: UserRole = UserRole.CUSTOMER) {
+                deliveryAddress: String? = null, email: String?, role: UserRole = UserRole.CUSTOMER) {
         this.name = name
         this.surname = surname
         this.username = username
+        this.email = email
         this.password = password
         this.deliveryAddress = deliveryAddress
         this.role = role

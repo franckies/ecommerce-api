@@ -6,6 +6,7 @@
 package it.polito.master.ap.group6.ecommerce.catalogservice.services
 
 //------- external dependencies ------------------------------------------------
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.bson.types.ObjectId
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -14,7 +15,6 @@ import org.springframework.stereotype.Service
 import org.springframework.web.client.HttpClientErrorException
 import org.springframework.web.client.ResourceAccessException
 import org.springframework.web.client.RestTemplate
-import java.util.*
 
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResult
@@ -22,14 +22,15 @@ import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.Executi
 import it.polito.master.ap.group6.ecommerce.catalogservice.models.Operation
 import it.polito.master.ap.group6.ecommerce.catalogservice.repositories.OperationRepository
 import it.polito.master.ap.group6.ecommerce.common.dtos.*
-import org.springframework.data.repository.findByIdOrNull
+import org.springframework.kafka.core.KafkaTemplate
 
 
 //======================================================================================================================
 //   Abstract declaration
 //======================================================================================================================
 interface OrderService {
-    fun createOrder(userID: String, placedOrderDTO: PlacedOrderDTO): ExecutionResult<OrderDTO>
+    fun createOrderSync(userID: String, placedOrderDTO: PlacedOrderDTO): ExecutionResult<OrderDTO>
+    fun createOrderAsync(userID: String, placedOrderDTO: PlacedOrderDTO): ExecutionResult<Any?>
     fun readOrderHistory(userID: String): ExecutionResult<ShownOrderListDTO>
     fun undoOrder(orderID: String): ExecutionResult<OrderDTO>
 }
@@ -48,6 +49,7 @@ interface OrderService {
 @Service
 class OrderServiceImpl(
     @Autowired private val userService: UserService,
+    @Autowired private val kafkaTemplateOrder: KafkaTemplate<String, String>,
     @Value("\${application.order_service}") private var orderservice_url: String = "localhost:8082"
 ) : OrderService {
 
@@ -55,9 +57,11 @@ class OrderServiceImpl(
     @Autowired
     lateinit var operationRepository: OperationRepository
 
+    val mapper = jacksonObjectMapper()
+
 
     //------- methods ----------------------------------------------------------
-    override fun createOrder(userID: String, placedOrderDTO: PlacedOrderDTO): ExecutionResult<OrderDTO> {
+    override fun createOrderSync(userID: String, placedOrderDTO: PlacedOrderDTO): ExecutionResult<OrderDTO> {
         // check if user exists
         val user_id = ObjectId(userID)
         val user = userService.get(user_id)
@@ -78,7 +82,7 @@ class OrderServiceImpl(
         )
 
         // log SAGA operation
-        val creation_op = Operation(sagaId = sagaId, orderDto = null)  // TODO insert SAGA identifier and formalize the SAGA object
+        val creation_op = Operation(sagaId = sagaId, placedOrderDto = filled_dto)  // TODO insert SAGA identifier and formalize the SAGA object
         operationRepository.save(creation_op)
 
         // submit remotely to the Order microservice
@@ -119,10 +123,41 @@ class OrderServiceImpl(
             return ExecutionResult(code = ExecutionResultType.GENERIC_ERROR, message = "Catch exception ${e.message}")
         }
 
-        //
-
         // provide requested outcome
         return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = order_dto)
+    }
+
+    override fun createOrderAsync(userID: String, placedOrderDTO: PlacedOrderDTO): ExecutionResult<Any?> {
+        // check if user exists
+        val user_id = ObjectId(userID)
+        val user = userService.get(user_id)
+        if (user.isEmpty)
+            return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "User $userID does not exist")
+
+        // check data coherence
+        if (!_checkDeliveryAddress(userID, placedOrderDTO.deliveryAddress))
+            return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "User $userID has not '${placedOrderDTO.deliveryAddress}' as delivery address")
+
+        // initialize SAGA object
+        val sagaId: ObjectId = ObjectId.get() // assuming it creates unique IDs -> it will be orderID
+        val filled_dto = PlacedOrderDTO(
+            sagaID = sagaId.toString(),
+            userID = user.get().id,
+            purchaseList = placedOrderDTO.purchaseList,
+            deliveryAddress = placedOrderDTO.deliveryAddress
+        )
+
+        // log SAGA operation
+        val creation_op = Operation(sagaId = sagaId, placedOrderDto = filled_dto)
+        operationRepository.save(creation_op)
+
+        // emit the Saga Object on the Kafka topic
+        val serialized_placedorder: String? = mapper.writeValueAsString(filled_dto)  //TODO: try Serializable on PlacedOrderDTO
+        //kafkaTemplateOrder.send("create_order", filled_dto)
+        kafkaTemplateOrder.send("create_order", serialized_placedorder)
+
+        // provide requested outcome
+        return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = null)  // being async, nothing can go wrong and there is no immediate answer
     }
 
     override fun readOrderHistory(userID: String): ExecutionResult<ShownOrderListDTO> {
@@ -218,7 +253,6 @@ class OrderServiceImpl(
 
 
     //------- internal facilities ----------------------------------------------
-
     private fun _checkDeliveryAddress(userID: String, deliveryAddress: String?): Boolean {
         // check input parameters
         if (deliveryAddress == null)

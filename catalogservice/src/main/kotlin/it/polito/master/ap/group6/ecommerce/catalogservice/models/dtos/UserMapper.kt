@@ -20,6 +20,7 @@ fun User.toDto() : UserDTO {
         id = this.id,
         name = this.name!!,
         surname = this.surname!!,
+        email = this.email!!,
         username = this.username!!,
         address = this.deliveryAddress,
         role = this.role.toString()
@@ -31,6 +32,7 @@ fun UserDTO.toModel(): User {
         name = this.name,
         surname = this.surname,
         username = this.username,
+        email = this.email,
         password = null,
         deliveryAddress = this.address,
         role = enumValueOf<UserRole>(this.role!!)

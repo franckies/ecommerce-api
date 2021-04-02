@@ -6,7 +6,7 @@
 package it.polito.master.ap.group6.ecommerce.catalogservice.models
 
 //------- external dependencies ------------------------------------------------
-import it.polito.master.ap.group6.ecommerce.common.dtos.OrderDTO
+import it.polito.master.ap.group6.ecommerce.common.dtos.PlacedOrderDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.UserRole
 import org.bson.types.ObjectId
 import org.springframework.data.annotation.Id
@@ -34,13 +34,13 @@ class Operation {
     var id: String? = null  // Mongo primary key
 
     var sagaId: ObjectId? = null  // identifier of the transaction
-    var orderDto: OrderDTO? = null  // reference to the performed operation
+    var placedOrderDto: PlacedOrderDTO? = null  // reference to the performed operation
 
     var timestamp: Date = Date()
 
     //------- constructors -----------------------------------------------------
-    constructor(sagaId: ObjectId?, orderDto: OrderDTO?) {
+    constructor(sagaId: ObjectId?, placedOrderDto: PlacedOrderDTO?) {
         this.sagaId = sagaId
-        this.orderDto = orderDto
+        this.placedOrderDto = placedOrderDto
     }
 }
