@@ -1,6 +1,7 @@
 package it.polito.master.ap.group6.ecommerce.orderservice.listeners
 
 
+import com.google.gson.Gson
 import it.polito.master.ap.group6.ecommerce.common.dtos.DeliveryListDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.PlacedOrderDTO
 import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.Response
@@ -22,10 +23,11 @@ class OrderSagaListener(
     val kafkaTemplate: KafkaTemplate<String, String>,
     @Autowired private val orderServiceAsync: OrderServiceAsync,
 ) {
-
+    private val json = Gson()
     @KafkaListener(groupId = "ecommerce", topics = ["create_order"])
-    fun createOrder(placedOrder: PlacedOrderDTO) {
-        println("OrderSagaListener.createOrder: Received Kafka message on topic create_order with message $placedOrder")
+    fun createOrder(placedOrderSer: String) {
+        println("OrderSagaListener.createOrder: Received Kafka message on topic create_order with message $placedOrderSer")
+        val placedOrder: PlacedOrderDTO = json.fromJson(placedOrderSer, PlacedOrderDTO::class.java)
         val response: Response = orderServiceAsync.createOrder(placedOrder)
         when (response.responseId) {
             ResponseType.INVALID_ORDER -> {
@@ -47,8 +49,9 @@ class OrderSagaListener(
     }
 
     @KafkaListener(groupId = "ecommerce", topics = ["products_ok"])
-    fun productsChecked(deliveryList: DeliveryListDTO) {
-        println("OrderSagaListener.productsChecked: Received Kafka message on topic products_ok with message $deliveryList")
+    fun productsChecked(deliveryListSer: String) {
+        println("OrderSagaListener.productsChecked: Received Kafka message on topic products_ok with message $deliveryListSer")
+        val deliveryList: DeliveryListDTO = json.fromJson(deliveryListSer, DeliveryListDTO::class.java)
         val response: Response = orderServiceAsync.productsChecked(deliveryList)
         when (response.responseId) {
             ResponseType.INVALID_ORDER -> {

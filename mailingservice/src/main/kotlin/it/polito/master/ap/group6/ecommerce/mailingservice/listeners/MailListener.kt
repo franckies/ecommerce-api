@@ -1,6 +1,8 @@
 package it.polito.master.ap.group6.ecommerce.mailingservice.listeners
 
+import com.google.gson.Gson
 import it.polito.master.ap.group6.ecommerce.common.dtos.MailingInfoDTO
+import it.polito.master.ap.group6.ecommerce.common.dtos.PlacedOrderDTO
 import it.polito.master.ap.group6.ecommerce.mailingservice.repositories.MailingRepository
 import org.apache.commons.mail.DefaultAuthenticator
 import org.apache.commons.mail.Email
@@ -22,8 +24,10 @@ import javax.mail.internet.InternetAddress
 class MailListener(
     @Autowired private val mailingRepository: MailingRepository
 ) {
+    private val json = Gson()
     @KafkaListener(groupId = "ecommerce", topics = ["order_tracking"])
-    fun sendInfoMail(mailingInfoDTO: MailingInfoDTO) {
+    fun sendInfoMail(mailingInfoDTOSer: String) {
+        val mailingInfoDTO: MailingInfoDTO = json.fromJson(mailingInfoDTOSer, MailingInfoDTO::class.java)
         val optionalUser = mailingRepository.findById(ObjectId(mailingInfoDTO.userId))
         if (optionalUser.isEmpty) {
             println("MailListener.sendMail: there aren't user with id ${mailingInfoDTO.userId}")

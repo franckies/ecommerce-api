@@ -1,5 +1,6 @@
 package it.polito.master.ap.group6.ecommerce.orderservice.services
 
+import com.google.gson.Gson
 import it.polito.master.ap.group6.ecommerce.common.dtos.DeliveryListDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.MailingInfoDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.PlacedOrderDTO
@@ -38,8 +39,7 @@ interface OrderServiceAsync {
  * @param orderRepository a reference to the Repository handling the database interaction for orders.
  * @param deliveryRepository a reference to the Repository handling the database interaction for deliveries.
  * @param deliveryService the service simulating the shipping of the orders.
- * @param kafkaTemplateRollback  a reference to the kafkaTemplate to publish rollback information
- * @param kafkaTemplateMailing a reference to the kafkaTemplate to publish a new mail to be sent
+ * @param kafkaTemplate  a reference to the kafkaTemplate to publish rollback information
  * @author Francesco Semeraro
  */
 @Service
@@ -49,8 +49,7 @@ class OrderServiceAsyncImpl(
     @Autowired private val deliveryRepository: DeliveryRepository,
     @Autowired private val deliveryService: DeliveryService,
     @Autowired private val orderLoggerRepository: OrderLoggerRepository,
-    val kafkaTemplateRollback: KafkaTemplate<String, String>,
-    val kafkaTemplateMailing: KafkaTemplate<String, MailingInfoDTO>
+    val kafkaTemplate: KafkaTemplate<String, String>,
 ) : OrderServiceAsync {
     override fun createOrder(placedOrder: PlacedOrderDTO): Response {
         //check if the order is already present, if it is, something went wrong.
@@ -159,7 +158,7 @@ class OrderServiceAsyncImpl(
             orderRepository.save(order)
             //delete the logs for that order
             orderLoggerRepository.deleteById(orderId)
-            kafkaTemplateRollback.send("rollback", orderId.toString())
+            kafkaTemplate.send("rollback", orderId.toString())
             sendEmail(orderId.toString(), "The order has been successfully canceled!")
             println("OrderServiceAsync.cancelOrder: Order ${order.id} canceled!")
         } else {
@@ -234,7 +233,8 @@ class OrderServiceAsyncImpl(
     }
 
     override  fun sendEmail(orderId: String, message: String): Unit{
+
         val order = orderRepository.findById(ObjectId(orderId)).get()
-        kafkaTemplateMailing.send("order_tracking", MailingInfoDTO(order.buyerId, order.status, order.id, message))
+        kafkaTemplate.send("order_tracking", Gson().toJson(MailingInfoDTO(order.buyerId, order.status, order.id, message)).toString())
     }
 }
