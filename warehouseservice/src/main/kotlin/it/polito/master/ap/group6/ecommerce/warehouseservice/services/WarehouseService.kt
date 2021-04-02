@@ -374,7 +374,7 @@ class WarehouseServiceImpl(
         Kafka listeners are implemented here
      */
 
-    @KafkaListener(groupId = "ecommerce", topics = ["create_order"])
+    @KafkaListener(groupId = "warehouseservice", topics = ["create_order"])
     fun listener_create_order(placedOrderDTOString: String?) {
 
         val placedOrderDTO = jacksonObjectMapper().readValue<PlacedOrderDTO>(placedOrderDTOString!!)
@@ -395,7 +395,7 @@ class WarehouseServiceImpl(
         }
     }
 
-    @KafkaListener(groupId = "ecommerce", topics = ["rollback"])
+    @KafkaListener(groupId = "warehouseservice", topics = ["rollback"])
     fun listener_rollback(orderID: String) {
         if (updateStocksAfterDeliveriesCancellation(orderID)) {
             println("Rollback correctly done.")

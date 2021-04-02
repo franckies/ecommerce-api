@@ -24,7 +24,7 @@ class OrderSagaListener(
     @Autowired private val orderServiceAsync: OrderServiceAsync,
 ) {
     private val json = Gson()
-    @KafkaListener(groupId = "ecommerce", topics = ["create_order"])
+    @KafkaListener(groupId = "orderservice", topics = ["create_order"])
     fun createOrder(placedOrderSer: String) {
         println("OrderSagaListener.createOrder: Received Kafka message on topic create_order with message $placedOrderSer")
         val placedOrder: PlacedOrderDTO = json.fromJson(placedOrderSer, PlacedOrderDTO::class.java)
@@ -48,7 +48,7 @@ class OrderSagaListener(
         }
     }
 
-    @KafkaListener(groupId = "ecommerce", topics = ["products_ok"])
+    @KafkaListener(groupId = "orderservice", topics = ["products_ok"])
     fun productsChecked(deliveryListSer: String) {
         println("OrderSagaListener.productsChecked: Received Kafka message on topic products_ok with message $deliveryListSer")
         val deliveryList: DeliveryListDTO = json.fromJson(deliveryListSer, DeliveryListDTO::class.java)
@@ -79,7 +79,7 @@ class OrderSagaListener(
         }
     }
 
-    @KafkaListener(groupId = "ecommerce", topics = ["wallet_ok"])
+    @KafkaListener(groupId = "orderservice", topics = ["wallet_ok"])
     fun walletChecked(orderId: String) {
         println("OrderSagaListener.walletChecked: Received Kafka message on topic products_ok with message $orderId")
         val response: Response = orderServiceAsync.walletChecked(orderId)
@@ -103,7 +103,7 @@ class OrderSagaListener(
         }
     }
 
-    @KafkaListener(groupId = "ecommerce", topics = ["rollback"])
+    @KafkaListener(groupId = "orderservice", topics = ["rollback"])
     fun rollbackOrder(orderId: String) {
         println("OrderSagaListener.rollbackOrder: Received Kafka message on topic rollback with message $orderId")
         val response: Response = orderServiceAsync.rollbackOrder(orderId)

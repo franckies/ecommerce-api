@@ -25,7 +25,7 @@ class MailListener(
     @Autowired private val mailingRepository: MailingRepository
 ) {
     private val json = Gson()
-    @KafkaListener(groupId = "ecommerce", topics = ["order_tracking"])
+    @KafkaListener(groupId = "mailingservice", topics = ["order_tracking"])
     fun sendInfoMail(mailingInfoDTOSer: String) {
         val mailingInfoDTO: MailingInfoDTO = json.fromJson(mailingInfoDTOSer, MailingInfoDTO::class.java)
         val optionalUser = mailingRepository.findById(ObjectId(mailingInfoDTO.userId))
@@ -48,7 +48,7 @@ class MailListener(
             val email: Email = SimpleEmail()
             email.setHostName("smtp.googlemail.com")
             email.setSmtpPort(465)
-            email.setAuthenticator(DefaultAuthenticator("noreply_ecommerceapi@gmail.com", "noreply.ecommerceapi1222"))
+            email.setAuthenticator(DefaultAuthenticator("noreply.ecommerceapi@gmail.com", "noreply.ecommerceapi1222"))
             email.isSSLOnConnect = true
             email.setFrom("noreply_ecommerceapi@gmail.com")
             email.subject = "News about your order ${mailingInfoDTO.orderId}"
@@ -67,7 +67,7 @@ class MailListener(
         }
     }
 
-    @KafkaListener(groupId = "ecommerce", topics = ["alarm_level"])
+    @KafkaListener(groupId = "mailingservice", topics = ["alarm_level"])
     fun sendAlarmMail(alarmInfo: String) {
         val optionalAdmins = mailingRepository.findUserDTOByRole("ADMIN")
         if (optionalAdmins.isEmpty) {
@@ -80,7 +80,7 @@ class MailListener(
             val email: Email = SimpleEmail()
             email.setHostName("smtp.googlemail.com")
             email.setSmtpPort(465)
-            email.setAuthenticator(DefaultAuthenticator("noreply_ecommerceapi@gmail.com", "noreply.ecommerceapi1222"))
+            email.setAuthenticator(DefaultAuthenticator("noreply.ecommerceapi@gmail.com", "noreply.ecommerceapi1222"))
             email.isSSLOnConnect = true
             email.setFrom("noreply_ecommerceapi@gmail.com")
             email.subject = "Alarm level information"

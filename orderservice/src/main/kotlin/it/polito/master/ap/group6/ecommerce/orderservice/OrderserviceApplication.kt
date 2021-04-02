@@ -22,6 +22,11 @@ class OrderserviceApplication(
     val kafkaTemplate: KafkaTemplate<String, String>
 ) {
     init {
+        //clear table
+        orderRepo.deleteAll()
+        deliveryRepo.deleteAll()
+        loggerRepo.deleteAll()
+
         //ONLY NEEDED IN ASYNC MODE=====================================================================================
         //As soon as order service wakes up, make a consistency control on the logger and rollback inconsistent status
         val loggerList = loggerRepo.findAll()
@@ -53,10 +58,6 @@ class OrderserviceApplication(
                 }
             }
         }
-
-        //clear table
-        orderRepo.deleteAll()
-        deliveryRepo.deleteAll()
 
 
 //        //Populate Order

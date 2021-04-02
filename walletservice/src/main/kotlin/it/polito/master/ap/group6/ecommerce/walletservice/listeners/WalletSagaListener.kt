@@ -19,7 +19,7 @@ class WalletSagaListener(
         @Autowired private val walletService: WalletService,
 ) {
 
-    @KafkaListener(groupId = "ecommerce", topics = ["create_order"])
+    @KafkaListener(groupId = "walletservice", topics = ["create_order"])
     fun createTransaction(placedOrderString: String) {
 
         val placedOrder = jacksonObjectMapper().readValue<PlacedOrderDTO>(placedOrderString)
@@ -35,7 +35,7 @@ class WalletSagaListener(
         }
     }
 
-    @KafkaListener(groupId = "ecommerce", topics = ["rollback"])
+    @KafkaListener(groupId = "walletservice", topics = ["rollback"])
     fun rollbackTransaction(orderId: String) {
         println("WalletSagaListener.rollbackTransaction: Received Kafka message on topic rollback with message $orderId")
         val response: Response = walletService.undoTransaction(orderId)
