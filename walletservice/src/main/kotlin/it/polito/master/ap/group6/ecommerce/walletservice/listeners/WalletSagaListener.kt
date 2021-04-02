@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Service
+import org.springframework.transaction.TransactionStatus
 
 @Service
 class WalletSagaListener(
@@ -38,7 +39,17 @@ class WalletSagaListener(
     @KafkaListener(groupId = "walletservice", topics = ["rollback"])
     fun rollbackTransaction(orderId: String) {
         println("WalletSagaListener.rollbackTransaction: Received Kafka message on topic rollback with message $orderId")
-        val response: Response = walletService.undoTransaction(orderId)
+        val response: Response = walletService.undoTransaction(orderId,
+            it.polito.master.ap.group6.ecommerce.common.misc.TransactionStatus.REFUSED)
 
     }
+
+    @KafkaListener(groupId = "walletservice", topics = ["cancel_order"])
+    fun cancelTransaction(orderId: String) {
+        println("WalletSagaListener.rollbackTransaction: Received Kafka message on topic cancel_order with message $orderId")
+        val response: Response = walletService.undoTransaction(orderId,
+            it.polito.master.ap.group6.ecommerce.common.misc.TransactionStatus.REFUNDED)
+
+    }
+
 }

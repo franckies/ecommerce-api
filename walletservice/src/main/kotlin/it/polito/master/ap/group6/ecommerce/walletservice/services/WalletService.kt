@@ -15,7 +15,7 @@ import java.util.*
 
 interface WalletService {
     fun createTransaction(orderID: String?): Response
-    fun undoTransaction(orderID: String?): Response
+    fun undoTransaction(orderID: String?, status: TransactionStatus): Response
     fun checkTransaction(checkTransaction: TransactionDTO?, userID: String?): Response
     fun createRecharge(placedRecharge: RechargeDTO?, userID: String?): Response
     fun getWallet(userID: String?): Response
@@ -63,7 +63,7 @@ class WalletServiceImpl(
         return res
     }
 
-    override fun undoTransaction(orderID: String?): Response {
+    override fun undoTransaction(orderID: String?, status: TransactionStatus): Response {
 
         var res: Response
 
@@ -75,7 +75,7 @@ class WalletServiceImpl(
             if(transaction.status == TransactionStatus.ACCEPTED || transaction.status == TransactionStatus.PENDING){
 
                 wallet.total = wallet.total!! + transaction.amount!!
-                wallet.transactions?.find{it.id==orderID}?.status = TransactionStatus.REFUNDED
+                wallet.transactions?.find{it.id==orderID}?.status = status
 
             }
 
