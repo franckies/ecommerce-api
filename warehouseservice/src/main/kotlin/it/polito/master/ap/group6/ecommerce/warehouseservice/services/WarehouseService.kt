@@ -1,5 +1,6 @@
 package it.polito.master.ap.group6.ecommerce.warehouseservice.services
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import it.polito.master.ap.group6.ecommerce.common.dtos.*
 import it.polito.master.ap.group6.ecommerce.warehouseservice.model.DeliveryLog
 import it.polito.master.ap.group6.ecommerce.warehouseservice.model.DeliveryLogStatus
@@ -32,7 +33,7 @@ interface WarehouseService {
 class WarehouseServiceImpl(
     private val warehouseRepository: WarehouseRepository,
     private val deliveryLogRepository: DeliveryLogRepository,
-    private val kafkaProducts: KafkaTemplate<String, DeliveryListDTO?>,
+    private val kafkaProducts: KafkaTemplate<String, String>,
     private val kafkaRollback: KafkaTemplate<String, String>,
     private val kafkaAlarmLevel: KafkaTemplate<String, String>,
 ) : WarehouseService {
@@ -373,7 +374,9 @@ class WarehouseServiceImpl(
      */
 
     @KafkaListener(groupId = "ecommerce", topics = ["create_order"])
-    fun listener(placedOrderDTO: PlacedOrderDTO?) {
+    fun listener_create_order(placedOrderDTOString: String?) {
+
+        val placedOrderDTO = jacksonObjectMapper().readValue<PlacedOrderDTO>(placedOrderDTOString)
 
         val result = getDeliveries(orderID = placedOrderDTO?.sagaID!!, purchases = placedOrderDTO.purchaseList)
         if (result==null) {
@@ -382,7 +385,7 @@ class WarehouseServiceImpl(
         } else {
             if (result.deliveryList!=null) {
                 println("KafkaProducts : emitting the deliveryList.")
-                kafkaProducts.send("products_ok", result)
+                kafkaProducts.send("products_ok", jacksonObjectMapper().writeValueAsString(result))
 
             } else {
                 println("Requested products not available: request for rollback.")
@@ -392,7 +395,7 @@ class WarehouseServiceImpl(
     }
 
     @KafkaListener(groupId = "ecommerce", topics = ["rollback"])
-    fun listener(orderID: String) {
+    fun listener_rollback(orderID: String) {
         if (updateStocksAfterDeliveriesCancellation(orderID)) {
             println("Rollback correctly done.")
         }
