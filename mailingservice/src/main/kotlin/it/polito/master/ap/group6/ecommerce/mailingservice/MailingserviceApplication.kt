@@ -4,8 +4,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
 @SpringBootApplication
-class MailingserviceApplication
+class MailingserviceApplication() {
+    init {
+    }
+}
 
 fun main(args: Array<String>) {
     runApplication<MailingserviceApplication>(*args)
+
 }

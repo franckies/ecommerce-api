@@ -54,6 +54,9 @@ class Response(
         fun transactionUndone(): Response {
             return Response(body=null, ResponseType.TRANSACTION_UNDONE, "The transaction have been undone successfully")
         }
+        fun invalidOrder(): Response {
+            return Response(body=null, ResponseType.INVALID_ORDER, "The saga id for this order is invalid")
+        }
 
     }
 }
@@ -73,5 +76,6 @@ enum class ResponseType{
     ORDER_SUBMITTED,
     DELIVERIES_UNDONE,
     ORDER_CONFIRMED,
-    TRANSACTION_UNDONE
+    TRANSACTION_UNDONE,
+    INVALID_ORDER
 }
