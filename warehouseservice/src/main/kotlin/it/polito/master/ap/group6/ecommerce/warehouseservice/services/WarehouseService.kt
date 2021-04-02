@@ -18,7 +18,8 @@ import org.springframework.kafka.core.KafkaTemplate
 interface WarehouseService {
 
     fun getProductsTotals(): ProductListDTO
-    fun getProductsPerWarehouse(): ProductListAdminDTO
+//    fun getProductsPerWarehouse(): ProductListAdminDTO
+    fun getProductsPerWarehouse(): ProductListWarehouseDTO
     fun insertNewProductInWarehouse(productAdminDTO: ProductAdminDTO): ProductAdminDTO? // return productAdminDTO if inserted, null otherwise
     fun checkAvailability(purchases: List<PurchaseDTO>): Boolean?
     fun getDeliveries(orderID : String, purchases : List<PurchaseDTO>?): DeliveryListDTO? // return filled DeliveryList if requested products are available, empty DeliveryList if not available, null if do not exist
@@ -32,7 +33,7 @@ class WarehouseServiceImpl(
     private val warehouseRepository: WarehouseRepository,
     private val deliveryLogRepository: DeliveryLogRepository,
     private val kafkaProducts: KafkaTemplate<String, DeliveryListDTO?>,
-    private val kafkaRollback: KafkaTemplate<String, Boolean>,
+    private val kafkaRollback: KafkaTemplate<String, String>,
     private val kafkaAlarmLevel: KafkaTemplate<String, String>,
 ) : WarehouseService {
 
@@ -54,26 +55,50 @@ class WarehouseServiceImpl(
         return productListDTO
     }
 
-    override fun getProductsPerWarehouse(): ProductListAdminDTO {
+//    override fun getProductsPerWarehouse(): ProductListAdminDTO {
+    override fun getProductsPerWarehouse(): ProductListWarehouseDTO {
 
         // Query to MongoDB
         val queriedProducts: List<Product> = warehouseRepository.getProductsPerWarehouse()
 
         // Convert result into ProductListAdminDTO
-        val productList = mutableListOf<ProductAdminDTO>()
+//        val productList = mutableListOf<ProductAdminDTO>()
+//        for (product in queriedProducts) {
+//            val prodDTO = ProductDTO(id = product.id.toString(), name = product.name, category = product.category, currentPrice = product.currentPrice)
+//            for (st in product.stock!!) {
+//                val productAdminDTO = ProductAdminDTO(
+//                    product = prodDTO,
+//                    warehouse = WarehouseDTO(name = st.warehouseName!!, address = st.warehouseAddress),
+//                    warehouseQuantity = st.availableQuantity!!,
+//                    alarmLevel = getAlarmLevel(st.availableQuantity!!)
+//                )
+//                productList.add(productAdminDTO)
+//            }
+//        }
+//        return ProductListAdminDTO(productList = productList)
+
+        val products = mutableListOf<ProductWarehouseDTO>()
         for (product in queriedProducts) {
-            val prodDTO = ProductDTO(id = product.id.toString(), name = product.name, category = product.category, currentPrice = product.currentPrice)
+            val stock = mutableListOf<WarehouseStockDTO>()
             for (st in product.stock!!) {
-                val productAdminDTO = ProductAdminDTO(
-                    product = prodDTO,
-                    warehouse = WarehouseDTO(name = st.warehouseName!!, address = st.warehouseAddress),
-                    warehouseQuantity = st.availableQuantity!!,
-                    alarmLevel = getAlarmLevel(st.availableQuantity!!)
-                )
-                productList.add(productAdminDTO)
+                stock.add(WarehouseStockDTO(
+                    warehouseName = st.warehouseName,
+                    warehouseAddress = st.warehouseAddress,
+                    availableQuantity = st.availableQuantity,
+                    alarmLevel = st.alarmLevel
+                ))
             }
+            val prodDTO = ProductWarehouseDTO(
+                name = product.name,
+                category = product.category,
+                currentPrice = product.currentPrice,
+                description = product.description,
+                picture = product.picture,
+                stock = stock
+            )
+            products.add(prodDTO)
         }
-        return ProductListAdminDTO(productList = productList)
+        return ProductListWarehouseDTO(products = products)
     }
 
     override fun insertNewProductInWarehouse(productAdminDTO: ProductAdminDTO): ProductAdminDTO? {
@@ -351,29 +376,24 @@ class WarehouseServiceImpl(
 
         val result = getDeliveries(orderID = placedOrderDTO?.sagaID!!, purchases = placedOrderDTO.purchaseList)
         if (result==null) {
-            println("KafkaProducts : emitting null.")
-            kafkaProducts.send("products_ok", null)
+            println("DeliveryList is null : request for rollback.")
+            kafkaRollback.send("rollback", placedOrderDTO.sagaID)
         } else {
             if (result.deliveryList!=null) {
                 println("KafkaProducts : emitting the deliveryList.")
                 kafkaProducts.send("products_ok", result)
 
             } else {
-                println("KafkaProducts : emitting null.")
-                kafkaProducts.send("products_ok", result)
+                println("Requested products not available: request for rollback.")
+                kafkaRollback.send("rollback", placedOrderDTO.sagaID)
             }
         }
     }
 
     @KafkaListener(groupId = "ecommerce", topics = ["rollback"])
     fun listener(orderID: String) {
-        val res = updateStocksAfterDeliveriesCancellation(orderID)
-        if (res==true) {
-            println("kafkaRollback : emitting true.")
-            kafkaRollback.send("rollback", true)
-        } else {
-            println("kafkaRollback : emitting false.")
-            kafkaRollback.send("rollback", false)
+        if (updateStocksAfterDeliveriesCancellation(orderID)) {
+            println("Rollback correctly done.")
         }
     }
 

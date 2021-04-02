@@ -18,8 +18,9 @@ class WarehouseController(val warehouseService: WarehouseService) {
     }
 
     @GetMapping("/warehouse/products/perwarehouse")
-    fun getProductsPerWarehouse() : ResponseEntity<ProductListAdminDTO> {
-        println("WarehouseService.getProductsPerWarehouse() invoked.")
+//    fun getProductsPerWarehouse() : ResponseEntity<ProductListAdminDTO> {
+    fun getProductsPerWarehouse() : ResponseEntity<ProductListWarehouseDTO> {
+    println("WarehouseService.getProductsPerWarehouse() invoked.")
         val productsPerWarehouse = warehouseService.getProductsPerWarehouse()
         return ResponseEntity(productsPerWarehouse, HttpStatus.OK)
     }
