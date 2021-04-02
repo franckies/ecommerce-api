@@ -6,14 +6,17 @@ import it.polito.master.ap.group6.ecommerce.common.dtos.TransactionDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.DeliveryStatus
 import it.polito.master.ap.group6.ecommerce.common.misc.OrderStatus
 import it.polito.master.ap.group6.ecommerce.common.misc.TransactionStatus
+import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.OrderLoggerStatus
 import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.Response
 import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.ResponseType
 import it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous.Utility
 import it.polito.master.ap.group6.ecommerce.orderservice.models.Delivery
 import it.polito.master.ap.group6.ecommerce.orderservice.models.Order
+import it.polito.master.ap.group6.ecommerce.orderservice.models.OrderLogger
 import it.polito.master.ap.group6.ecommerce.orderservice.models.dtos.toDto
 import it.polito.master.ap.group6.ecommerce.orderservice.models.dtos.toModel
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.DeliveryRepository
+import it.polito.master.ap.group6.ecommerce.orderservice.repositories.OrderLoggerRepository
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.OrderRepository
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.cancel
@@ -55,6 +58,7 @@ class OrderServiceSyncImpl(
     @Autowired private val orderRepository: OrderRepository,
     @Autowired private val deliveryRepository: DeliveryRepository,
     @Autowired private val deliveryService: DeliveryService,
+    @Autowired private val orderLoggerRepository: OrderLoggerRepository
 ) : OrderServiceSync {
 
     /**
@@ -72,6 +76,8 @@ class OrderServiceSyncImpl(
         var order = placedOrder.toModel()
         order.status = OrderStatus.PENDING
         order = orderRepository.save(order)
+        //log the order
+        orderLoggerRepository.save(OrderLogger(placedOrder.sagaID, OrderLoggerStatus.PENDING, Date()))
 
         //STEP 1: check if there are enough money and lock them on the user wallet
         val step1 = checkWallet(ObjectId(order.id))
@@ -80,6 +86,8 @@ class OrderServiceSyncImpl(
             orderRepository.save(order)
             val res = Response.notEnoughMoney()
             res.body = order.toDto()
+            //unlog the order
+            orderLoggerRepository.deleteById(ObjectId(order.id))
             return res
         }
         //STEP 2: if there are enough money, submit the order and create the needed deliveries in PENDING status
@@ -89,9 +97,11 @@ class OrderServiceSyncImpl(
             orderRepository.save(order)
             val res = Response.productNotAvailable()
             res.body = order.toDto()
+            //unlog the order
+            orderLoggerRepository.deleteById(ObjectId(order.id))
             return res
-            //return order.toDto() //Return if there aren't enough products or the warehouse service is down
         }
+
         //STEP 3: complete the transaction if the delivery has started and mark order as paid. It also takes
         //care of canceling all the pending deliveries created in the STEP 2.
         val step3 = completeTransaction(step1.body as String, ObjectId(order.id))
@@ -100,11 +110,14 @@ class OrderServiceSyncImpl(
             orderRepository.save(order)
             val res = Response.notEnoughMoney()
             res.body = order.toDto()
+            //unlog the order
+            orderLoggerRepository.deleteById(ObjectId(order.id))
             return res
         }
         order.status = OrderStatus.PAID
         order = orderRepository.save(order)
-
+        //log the order
+        orderLoggerRepository.save(OrderLogger(order.id.toString(), OrderLoggerStatus.PAID, Date()))
         /**
          * Start the coroutine handling the delivery simulation.
          * If the order get CANCELED in the PAID status, the coroutine CANCEL all the associated deliveries.
@@ -118,7 +131,7 @@ class OrderServiceSyncImpl(
 
     /**
      * @param orderID, the id of the desired order
-     * @return a Response instance having a status code corresponding to the event that occurred. If all go right,
+     * @return a Response instance having a status code corresponding to the event that occurred. If all goes right,
      * the response will have as body an object containing for a given orderId,a list of orders corresponding to
      * all the deliveries associated to that order. In this way we have a more fine-grained control of the status
      * of each delivery in the order.
@@ -157,7 +170,7 @@ class OrderServiceSyncImpl(
     /**
      * For a given user, getOrdersByUser returns all the orders associated to that user.
      * @param userID, the id of the user.
-     * @return a Response instance having a status code corresponding to the event that occurred. If all go right
+     * @return a Response instance having a status code corresponding to the event that occurred. If all goes right
      * the response will have as body an object containing for each order,
      * a list of each delivery associated to that order with the corresponding status.
      */
@@ -207,6 +220,8 @@ class OrderServiceSyncImpl(
             //Cascade update on the deliveries associated to this order and undone of the transaction
             undoDeliveries(ObjectId(order.id))
             undoTransaction(ObjectId(order.id))
+            //unlog the order
+            orderLoggerRepository.deleteById(ObjectId(order.id))
             println("OrderServiceSync.cancelOrder: Order ${order.id} canceled!")
         } else {
             println("OrderServiceSync.cancelOrder: Cannot cancel the order ${order.id}!")

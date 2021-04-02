@@ -79,36 +79,36 @@ class OrderServiceAsyncImpl(
             failOrder(orderId.toString())
             return Response.invalidOrder()
         }
-        //If the order is not logged as pending or paid, something went wrong. Rollback all
-        if (orderLoggerOptional.get().orderStatus != OrderLoggerStatus.PENDING || orderLoggerOptional.get().orderStatus != OrderLoggerStatus.COMPLETE_TRANSACTION_COMPLETED) {
-            //delete the order from the logger
-            orderLoggerRepository.deleteById(orderId)
-            //fail the order in the database
-            failOrder(orderId.toString())
-            return Response.invalidOrder()
+        when(orderLoggerOptional.get().orderStatus){
+            //If the order is pending, then the warehouse is the first answering, and the deliveries are saved.
+            OrderLoggerStatus.PENDING -> {
+                orderLoggerRepository.save(OrderLogger(orderId.toString(), OrderLoggerStatus.DELIVERY_OK, Date()))
+                //save created deliveries in the db
+                saveDeliveries(deliveryList, orderRepository.findById(orderId).get().deliveryAddress!!)
+                return Response.orderSubmitted()
+            }
+            //If the transaction is completed, then the wallet already answered, the order is completed
+            OrderLoggerStatus.TRANSACTION_OK -> {
+                //log the order as paid
+                orderLoggerRepository.save(OrderLogger(orderId.toString(), OrderLoggerStatus.PAID, Date()))
+                //save the order as paid
+                var order = orderRepository.findById(orderId).get()
+                order.status = OrderStatus.PAID
+                order = orderRepository.save(order)
+                //create and start deliveries
+                saveDeliveries(deliveryList, order.deliveryAddress!!)
+                deliveryService.startDeliveries(order.id.toString())
+                return Response.orderConfirmed()
+            }
+            //rollback all if none of the previous status is observed. Something went wrong.
+            else -> {
+                //delete the order from the logger
+                orderLoggerRepository.deleteById(orderId)
+                //fail the order in the database
+                failOrder(orderId.toString())
+                return Response.invalidOrder()
+            }
         }
-        //If the order is pending, then the warehouse is the first answering, and the submit is completed.
-        if(orderLoggerOptional.get().orderStatus == OrderLoggerStatus.PENDING){
-
-            orderLoggerRepository.save(OrderLogger(orderId.toString(), OrderLoggerStatus.SUBMIT_ORDER_COMPLETED, Date()))
-            //save created deliveries in the db
-            saveDeliveries(deliveryList, orderRepository.findById(orderId).get().deliveryAddress!!)
-            return Response.orderSubmitted()
-        }
-        //If the order is paid, then the wallet has already answered, the order is then completed.
-        if(orderLoggerOptional.get().orderStatus == OrderLoggerStatus.COMPLETE_TRANSACTION_COMPLETED) {
-            //log the order as paid
-            orderLoggerRepository.save(OrderLogger(orderId.toString(), OrderLoggerStatus.PAID, Date()))
-            //save the order as paid
-            var order = orderRepository.findById(orderId).get()
-            order.status = OrderStatus.PAID
-            order = orderRepository.save(order)
-            //create and start deliveries
-            saveDeliveries(deliveryList, order.deliveryAddress!!)
-            deliveryService.startDeliveries(order.id.toString())
-            return Response.orderConfirmed()
-        }
-        return Response.invalidOrder()
     }
 
     override fun walletChecked(orderId: String): Response {
@@ -118,34 +118,33 @@ class OrderServiceAsyncImpl(
             failOrder(orderId)
             return Response.invalidOrder()
         }
-        //If the order is not logged as pending or submitted, something went wrong. Rollback all
-        if (orderLoggerOptional.get().orderStatus != OrderLoggerStatus.PENDING || orderLoggerOptional.get().orderStatus != OrderLoggerStatus.SUBMIT_ORDER_COMPLETED) {
-            //delete the order from the logger
-            orderLoggerRepository.deleteById(ObjectId(orderId))
-            //fail the order in the database
-            failOrder(orderId)
-            return Response.invalidOrder()
+        when(orderLoggerOptional.get().orderStatus){
+            //If the order is pending, then the wallet is the first answering, and the payment is completed.
+            OrderLoggerStatus.PENDING -> {
+                orderLoggerRepository.save(OrderLogger(orderId, OrderLoggerStatus.TRANSACTION_OK, Date()))
+                return Response.moneyLocked()
+            }
+            //If the order is submitted, then the warehouse already answered, the order is completed
+            OrderLoggerStatus.DELIVERY_OK -> {
+                //log the order as paid
+                orderLoggerRepository.save(OrderLogger(orderId, OrderLoggerStatus.PAID, Date()))
+                //save the order as paid
+                var order = orderRepository.findById(ObjectId(orderId)).get()
+                order.status = OrderStatus.PAID
+                order = orderRepository.save(order)
+                //start deliveries
+                deliveryService.startDeliveries(order.id.toString())
+                return Response.orderConfirmed()
+            }
+            //rollback all if none of the previous status is observed. Something went wrong.
+            else -> {
+                //delete the order from the logger
+                orderLoggerRepository.deleteById(ObjectId(orderId))
+                //fail the order in the database
+                failOrder(orderId)
+                return Response.invalidOrder()
+            }
         }
-        //If the order is pending, then the wallet is the first answering, and the payment is completed.
-        if(orderLoggerOptional.get().orderStatus == OrderLoggerStatus.PENDING){
-            orderLoggerRepository.save(OrderLogger(orderId, OrderLoggerStatus.COMPLETE_TRANSACTION_COMPLETED, Date()))
-            return Response.moneyLocked()
-        }
-        //If the order is submitted, then the warehouse already answered, the order is completed
-        if(orderLoggerOptional.get().orderStatus == OrderLoggerStatus.SUBMIT_ORDER_COMPLETED) {
-            //log the order as paid
-            orderLoggerRepository.save(OrderLogger(orderId, OrderLoggerStatus.PAID, Date()))
-            //save the order as paid
-            var order = orderRepository.findById(ObjectId(orderId)).get()
-            order.status = OrderStatus.PAID
-            order = orderRepository.save(order)
-            //start deliveries
-            deliveryService.startDeliveries(order.id.toString())
-            return Response.orderConfirmed()
-        }
-        return Response.invalidOrder()
-
-
     }
 
     override fun cancelOrder(orderId: ObjectId): Response {
@@ -180,30 +179,35 @@ class OrderServiceAsyncImpl(
             failOrder(orderId)
             return Response.invalidOrder()
         }
-        //If the order is logged, then it must be in one among submit completed or transaction completed or pending
+
+        //If the order is logged, then it must be in one among delivery ok or transaction ok or pending
         //Then or products are not available or there aren't enough money
-        if(orderLoggerOptional.get().orderStatus == OrderLoggerStatus.SUBMIT_ORDER_COMPLETED){
-            //unlog the order
-            orderLoggerRepository.deleteById(ObjectId(orderId))
-            //set it as failed
-            failOrder(orderId)
-            return Response.notEnoughMoney()
+        when(orderLoggerOptional.get().orderStatus){
+            OrderLoggerStatus.DELIVERY_OK -> {
+                //unlog the order
+                orderLoggerRepository.deleteById(ObjectId(orderId))
+                //set it as failed
+                failOrder(orderId)
+                return Response.notEnoughMoney()
+            }
+            OrderLoggerStatus.TRANSACTION_OK -> {
+                //unlog the order
+                orderLoggerRepository.deleteById(ObjectId(orderId))
+                //set it as failed
+                failOrder(orderId)
+                return Response.productNotAvailable()
+            }
+            OrderLoggerStatus.PENDING -> {
+                //unlog the order
+                orderLoggerRepository.deleteById(ObjectId(orderId))
+                //set it as failed
+                failOrder(orderId)
+                return Response.invalidOrder()
+            }
+            else -> {
+                return Response.invalidOrder()
+            }
         }
-        if(orderLoggerOptional.get().orderStatus == OrderLoggerStatus.COMPLETE_TRANSACTION_COMPLETED){
-            //unlog the order
-            orderLoggerRepository.deleteById(ObjectId(orderId))
-            //set it as failed
-            failOrder(orderId)
-            return Response.productNotAvailable()
-        }
-        if(orderLoggerOptional.get().orderStatus == OrderLoggerStatus.PENDING){
-            //unlog the order
-            orderLoggerRepository.deleteById(ObjectId(orderId))
-            //set it as failed
-            failOrder(orderId)
-            return Response.invalidOrder()
-        }
-        return Response.invalidOrder()
     }
 
     override fun saveDeliveries(deliveryList: DeliveryListDTO, address: String): Unit{

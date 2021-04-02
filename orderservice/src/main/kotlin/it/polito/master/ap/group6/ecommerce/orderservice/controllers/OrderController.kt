@@ -90,7 +90,7 @@ class OrderController(
      * DELETE an order from the database. It actually modifies its status to CANCELED.
      * @return the DTO corresponding to the canceled order.
      */
-    @GetMapping("/delete/{orderID}/orchestrator")
+    @GetMapping("/delete/{orderID}/sync")
     fun cancelOrder(@PathVariable("orderID") orderID: String): ResponseEntity<OrderDTO?> {
         println("OrderController.cancelOrder: the order $orderID is requested to be canceled.")
         try {
@@ -118,7 +118,7 @@ class OrderController(
      * DELETE an order from the database in an async manner. It actually modifies its status to CANCELED.
      * @return the DTO corresponding to the canceled order.
      */
-    @GetMapping("/delete/{orderID}/choreography")
+    @GetMapping("/delete/{orderID}/async")
     fun cancelOrderAsync(@PathVariable("orderID") orderID: String): ResponseEntity<OrderDTO?> {
         println("OrderController.cancelOrderAsync: the order $orderID is requested to be canceled.")
         try {

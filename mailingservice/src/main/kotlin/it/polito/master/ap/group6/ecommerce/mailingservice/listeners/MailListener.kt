@@ -23,7 +23,7 @@ class MailListener(
     @Autowired private val mailingRepository: MailingRepository
 ) {
     @KafkaListener(groupId = "ecommerce", topics = ["order_tracking"])
-    fun sendMail(mailingInfoDTO: MailingInfoDTO) {
+    fun sendInfoMail(mailingInfoDTO: MailingInfoDTO) {
         val optionalUser = mailingRepository.findById(ObjectId(mailingInfoDTO.userId))
         if (optionalUser.isEmpty) {
             println("MailListener.sendMail: there aren't user with id ${mailingInfoDTO.userId}")
@@ -58,6 +58,48 @@ class MailListener(
             email.setMsg(textMessage)
             email.addTo(emailAddr.toString())
             email.send()
+        } catch (e: Exception) {
+            println("MailListener.sendMail: {${e.cause}. Impossible to send the email.")
+        }
+    }
+
+    @KafkaListener(groupId = "ecommerce", topics = ["order_tracking"])
+    fun sendAlarmMail(alarmInfo: String) {
+        val optionalAdmins = mailingRepository.findUserDTOByRole("ADMIN")
+        if (optionalAdmins.isEmpty) {
+            println("MailListener.sendMail: there aren't admins in the database.")
+            return
+        }
+        val admins = optionalAdmins.get()
+        //define the email
+        try {
+            val email: Email = SimpleEmail()
+            email.setHostName("smtp.googlemail.com")
+            email.setSmtpPort(465)
+            email.setAuthenticator(DefaultAuthenticator("noreply_ecommerceapi@gmail.com", "noreply.ecommerceapi1222"))
+            email.isSSLOnConnect = true
+            email.setFrom("noreply_ecommerceapi@gmail.com")
+            email.subject = "Alarm level information"
+            email.addTo("noreply_ecommerceapi@gmail.com")
+            val textMessage: String =
+                """
+                    Hi! 
+                    $alarmInfo
+                """
+            email.setMsg(textMessage)
+            //check address validity and add to bcc
+            val emailAddrList: List<InternetAddress> = admins.map { InternetAddress(it.email) }
+
+            for (emailAddr: InternetAddress in emailAddrList) {
+                try {
+                    emailAddr.validate()
+                    email.addBcc(emailAddr.toString())
+
+                } catch (e: AddressException) {
+                    println("MailListener.sendMail: the email $emailAddr is invalid")
+                    continue
+                }
+            }
         } catch (e: Exception) {
             println("MailListener.sendMail: {${e.cause}. Impossible to send the email.")
         }

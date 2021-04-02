@@ -33,13 +33,13 @@ class OrderserviceApplication(
                     loggerRepo.deleteById(ObjectId(orderLog.orderID))
                     kafkaTemplate.send("rollback", orderLog.orderID)
                 }
-                OrderLoggerStatus.COMPLETE_TRANSACTION_COMPLETED -> {
+                OrderLoggerStatus.TRANSACTION_OK -> {
                     println("OrderServiceApplication.init: inconsistent order ${orderLog.orderID} found.")
                     orderServiceAsync.failOrder(orderLog.orderID!!)
                     loggerRepo.deleteById(ObjectId(orderLog.orderID))
                     kafkaTemplate.send("rollback", orderLog.orderID)
                 }
-                OrderLoggerStatus.SUBMIT_ORDER_COMPLETED -> {
+                OrderLoggerStatus.DELIVERY_OK -> {
                     println("OrderServiceApplication.init: inconsistent order ${orderLog.orderID} found.")
                     orderServiceAsync.failOrder(orderLog.orderID!!)
                     loggerRepo.deleteById(ObjectId(orderLog.orderID))
