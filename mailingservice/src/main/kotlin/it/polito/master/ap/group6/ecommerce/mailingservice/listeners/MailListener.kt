@@ -100,6 +100,7 @@ class MailListener(
                     continue
                 }
             }
+            email.send()
         } catch (e: Exception) {
             println("MailListener.sendMail: {${e.cause}. Impossible to send the email.")
         }
