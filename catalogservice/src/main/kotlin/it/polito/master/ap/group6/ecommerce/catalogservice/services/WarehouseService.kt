@@ -25,7 +25,8 @@ import it.polito.master.ap.group6.ecommerce.common.dtos.*
 //======================================================================================================================
 interface WarehouseService {
     fun showProducts(): ExecutionResult<ProductListDTO>
-    fun showProductsPerWarehouse(): ExecutionResult<ProductListAdminDTO>
+//    fun showProductsPerWarehouse(): ExecutionResult<ProductListAdminDTO>
+    fun showProductsPerWarehouse(): ExecutionResult<ProductListWarehouseDTO>
     fun createProduct(product: ProductAdminDTO): ExecutionResult<ProductDTO>
     fun modifyProduct(productID: String, modified_product: ProductAdminDTO): ExecutionResult<ProductDTO>
 }
@@ -84,15 +85,20 @@ class WarehouseServiceImpl(
         return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = res)
     }
 
-    override fun showProductsPerWarehouse(): ExecutionResult<ProductListAdminDTO> {
+
+//    override fun showProductsPerWarehouse(): ExecutionResult<ProductListAdminDTO> {
+    override fun showProductsPerWarehouse(): ExecutionResult<ProductListWarehouseDTO> {
+
         // ask remotely to the Warehouse microservice
         val url: String = "http://${warehouseservice_url}/warehouse/products/perwarehouse"
-        var res: ProductListAdminDTO? = null
+//        var res: ProductListAdminDTO? = null
+        var res : ProductListWarehouseDTO? = null
         try {
             print("Performing GET on '$url'... ")
             res = RestTemplate().getForObject(
                 url,  // url
-                ProductListAdminDTO::class.java  // responseType
+//                ProductListAdminDTO::class.java  // responseType
+                ProductListWarehouseDTO::class.java
             )
             println("done")
         } catch (e: ResourceAccessException) {

@@ -75,7 +75,8 @@ class WarehouseController(
      */
     @RolesAllowed("ROLE_ADMIN")
     @GetMapping("/admin/show")
-    fun showProductsPerWarehouse(): ResponseEntity<ProductListAdminDTO> {
+    fun showProductsPerWarehouse(): ResponseEntity<ProductListWarehouseDTO> {
+//    fun showProductsPerWarehouse(): ResponseEntity<ProductListAdminDTO> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         logger.info { "Received GET on url='${currentRequest?.requestURL}'" }
