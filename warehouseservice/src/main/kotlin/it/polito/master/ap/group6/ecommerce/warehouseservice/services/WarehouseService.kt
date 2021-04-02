@@ -115,7 +115,7 @@ class WarehouseServiceImpl(
         // Convert ProductAdminDTO to Product
         val warehouse = WarehouseStock(
             warehouseName = productAdminDTO.warehouse?.name, warehouseAddress = productAdminDTO.warehouse?.address,
-            availableQuantity = productAdminDTO.warehouseQuantity, alarmLevel = getAlarmLevel(productAdminDTO.warehouseQuantity)
+            availableQuantity = productAdminDTO.warehouseQuantity, alarmLevel = productAdminDTO.warehouseQuantity
         )
         val productToStore = Product(
             name = productAdminDTO.product?.name, category = productAdminDTO.product?.category,
@@ -175,18 +175,14 @@ class WarehouseServiceImpl(
                                 requestedProduct.stock[i].availableQuantity = 0
                                 val message = "ALERT! Product ${requestedProduct.id} in warehouse ${requestedProduct.stock[i].warehouseName} : available quantities are 0."
                                 kafkaAlarmLevel.send("alarm_level", message)
-                                requestedProduct.stock[i].alarmLevel = getAlarmLevel(0)
                             } else {
                                 givenQuantity = remainingQuantity
                                 requestedProduct.stock[i].availableQuantity =
                                     requestedProduct.stock[i].availableQuantity!! - remainingQuantity
-                                val newAlarmLevel = getAlarmLevel(requestedProduct.stock[i].availableQuantity!!)
-                                val currentAlarmLevel = requestedProduct.stock[i].alarmLevel
-                                if (newAlarmLevel != currentAlarmLevel) {
-                                    val message = "ALERT! Product ${requestedProduct.id} in warehouse ${requestedProduct.stock[i].warehouseName} : alarm level passed from $currentAlarmLevel to $newAlarmLevel"
+                                if (requestedProduct.stock[i].availableQuantity!! <= requestedProduct.stock[i].alarmLevel!!) {
+                                    val message = "ALERT! Product ${requestedProduct.id} in warehouse ${requestedProduct.stock[i].warehouseName} : available products are ${requestedProduct.stock[i].availableQuantity!!}, alarm level is ${requestedProduct.stock[i].alarmLevel!!}"
                                     kafkaAlarmLevel.send("alarm_level", message)
                                 }
-                                requestedProduct.stock[i].alarmLevel = newAlarmLevel
                                 remainingQuantity = 0
                             }
                             if (givenQuantity!=0) {
@@ -247,14 +243,10 @@ class WarehouseServiceImpl(
                         if (stock.warehouseName == warehouseOfOrigin) // Assume name of the warehouse is the primary key
                         {
                             stock.availableQuantity = stock.availableQuantity!! + purchase.quantity!!
-                            val newAlarmLevel = getAlarmLevel(stock.availableQuantity!!)
-                            val currentAlarmLevel =  stock.alarmLevel
-
-                            if (newAlarmLevel != currentAlarmLevel) {
-                                val message = "ALERT! Product ${purchase.productID} in warehouse ${stock.warehouseName} : alarm level passed from $currentAlarmLevel to $newAlarmLevel"
+                            if (stock.availableQuantity!! <= stock.alarmLevel!!) {
+                                val message = "ALERT! Product ${purchase.productID} in warehouse ${stock.warehouseName} : available products are ${stock.availableQuantity!!}, alarm level is ${stock.alarmLevel!!}"
                                 kafkaAlarmLevel.send("alarm_level", message)
                             }
-                            stock.alarmLevel = getAlarmLevel(stock.availableQuantity!!)
                             break
                         }
                     }
@@ -283,7 +275,7 @@ class WarehouseServiceImpl(
             if (stock.warehouseName == productAdminDTO.warehouse!!.name) {
                 stock.warehouseAddress = productAdminDTO.warehouse!!.address
                 stock.availableQuantity = productAdminDTO.warehouseQuantity
-                stock.alarmLevel = getAlarmLevel(productAdminDTO.warehouseQuantity)
+                stock.alarmLevel = productAdminDTO.warehouseQuantity
                 requestedWarehouseAlreadyExist = true
                 break
             }
@@ -291,7 +283,7 @@ class WarehouseServiceImpl(
         if (!requestedWarehouseAlreadyExist) { // The product is not stored in that warehouse
             updateStock.add(WarehouseStock(
                 productAdminDTO.warehouse!!.name, productAdminDTO.warehouse!!.address,
-                productAdminDTO.warehouseQuantity, getAlarmLevel(productAdminDTO.warehouseQuantity)
+                productAdminDTO.warehouseQuantity, productAdminDTO.warehouseQuantity
             ))
         }
         val documentToUpdate = Product(
@@ -354,19 +346,6 @@ class WarehouseServiceImpl(
             }
         }
         return areProductQuantitiesAvailable
-    }
-
-    fun getAlarmLevel(availableQuantity: Int?) : Int? {
-        if (availableQuantity!=null) {
-            var alarmLevel : Int? = null
-            when {
-                availableQuantity >= 50 -> alarmLevel = 0
-                availableQuantity >= 10 -> alarmLevel = 1
-                availableQuantity < 10 -> alarmLevel = 2
-            }
-            return alarmLevel
-        } else
-            return null
     }
 
 
