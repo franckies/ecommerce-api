@@ -376,7 +376,7 @@ class WarehouseServiceImpl(
 
     @KafkaListener(groupId = "warehouseservice", topics = ["create_order"])
     fun listener_create_order(placedOrderDTOString: String?) {
-
+        println("Create order requested.")
         val placedOrderDTO = jacksonObjectMapper().readValue<PlacedOrderDTO>(placedOrderDTOString!!)
 
         val result = getDeliveries(orderID = placedOrderDTO?.sagaID!!, purchases = placedOrderDTO.purchaseList)
@@ -397,8 +397,17 @@ class WarehouseServiceImpl(
 
     @KafkaListener(groupId = "warehouseservice", topics = ["rollback"])
     fun listener_rollback(orderID: String) {
+        println("Rollback requested.")
         if (updateStocksAfterDeliveriesCancellation(orderID)) {
             println("Rollback correctly done.")
+        }
+    }
+
+    @KafkaListener(groupId = "warehouseservice", topics = ["cancel_order"])
+    fun listener_cancel_order(orderID: String) {
+        println("Cancel of order requested.")
+        if (updateStocksAfterDeliveriesCancellation(orderID)) {
+            println("Cancel of order correctly done.")
         }
     }
 
