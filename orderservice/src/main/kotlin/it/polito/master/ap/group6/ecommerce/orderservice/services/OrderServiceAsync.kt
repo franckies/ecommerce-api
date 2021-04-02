@@ -158,7 +158,7 @@ class OrderServiceAsyncImpl(
             orderRepository.save(order)
             //delete the logs for that order
             orderLoggerRepository.deleteById(orderId)
-            kafkaTemplate.send("rollback", orderId.toString())
+            kafkaTemplate.send("cancel_order", orderId.toString())
             sendEmail(orderId.toString(), "The order has been successfully canceled!")
             println("OrderServiceAsync.cancelOrder: Order ${order.id} canceled!")
         } else {

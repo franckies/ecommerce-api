@@ -3,6 +3,7 @@ package it.polito.master.ap.group6.ecommerce.walletservice.controllers
 import it.polito.master.ap.group6.ecommerce.common.dtos.RechargeDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.TransactionDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.WalletDTO
+import it.polito.master.ap.group6.ecommerce.common.misc.TransactionStatus
 import it.polito.master.ap.group6.ecommerce.walletservice.miscellaneous.ResponseType
 import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.Wallet
 import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.toDto
@@ -51,7 +52,7 @@ class OrderController(
     fun undoTransaction(@PathVariable("orderID") orderID: String?): ResponseEntity<String?> {
 
         println("WalletController.undoTransaction: transaction with order ${orderID} rollback has been issued")
-        val transactionResult = walletService.undoTransaction(orderID)
+        val transactionResult = walletService.undoTransaction(orderID, TransactionStatus.REFUNDED)
 
         return when(transactionResult.responseId) {
             ResponseType.USER_WALLET_REFUND -> ResponseEntity(transactionResult.body as String, HttpStatus.OK)

@@ -32,7 +32,8 @@ interface OrderService {
     fun createOrderSync(userID: String, placedOrderDTO: PlacedOrderDTO): ExecutionResult<OrderDTO>
     fun createOrderAsync(userID: String, placedOrderDTO: PlacedOrderDTO): ExecutionResult<Any?>
     fun readOrderHistory(userID: String): ExecutionResult<ShownOrderListDTO>
-    fun undoOrder(orderID: String): ExecutionResult<OrderDTO>
+    fun undoOrderSync(orderID: String): ExecutionResult<OrderDTO>
+    fun undoOrderAsync(orderID: String): ExecutionResult<OrderDTO>
 }
 
 
@@ -200,7 +201,32 @@ class OrderServiceImpl(
         return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = res)
     }
 
-    override fun undoOrder(orderID: String): ExecutionResult<OrderDTO> {
+    override fun undoOrderSync(orderID: String): ExecutionResult<OrderDTO> {
+        return _rollback(orderID,"http://${orderservice_url}/order/delete/$orderID/sync")
+    }
+
+    override fun undoOrderAsync(orderID: String): ExecutionResult<OrderDTO> {
+        return _rollback(orderID, "http://${orderservice_url}/order/delete/$orderID/async")
+    }
+
+
+    //------- internal facilities ----------------------------------------------
+    private fun _checkDeliveryAddress(userID: String, deliveryAddress: String?): Boolean {
+        // check input parameters
+        if (deliveryAddress == null)
+            return false
+
+        // retrieve user data from the DB
+        val user_id = ObjectId(userID)
+        val user = userService.get(user_id)
+        if (user.isEmpty)
+            return false
+
+        // check if selected address is valid
+        return user.get().deliveryAddress == deliveryAddress
+    }
+
+    private fun _rollback(orderID: String, url: String): ExecutionResult<OrderDTO> {
         // check if exists SAGA for this order
         val order_id: ObjectId = ObjectId(orderID)
         val saga_obj = operationRepository.findBySagaId(order_id)  // assuming sagaId==orderId
@@ -211,7 +237,7 @@ class OrderServiceImpl(
         operationRepository.deleteBySagaId(order_id)  // TODO understand exact meaning
 
         // submit remotely to the Order microservice
-        val url: String = "http://${orderservice_url}/order/delete/$orderID"
+        val url: String = url
         var res: OrderDTO? = null
         try {
             print("Performing GET on '$url'... ")
@@ -249,23 +275,6 @@ class OrderServiceImpl(
 
         // provide requested outcome
         return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = res)
-    }
-
-
-    //------- internal facilities ----------------------------------------------
-    private fun _checkDeliveryAddress(userID: String, deliveryAddress: String?): Boolean {
-        // check input parameters
-        if (deliveryAddress == null)
-            return false
-
-        // retrieve user data from the DB
-        val user_id = ObjectId(userID)
-        val user = userService.get(user_id)
-        if (user.isEmpty)
-            return false
-
-        // check if selected address is valid
-        return user.get().deliveryAddress == deliveryAddress
     }
 
 }

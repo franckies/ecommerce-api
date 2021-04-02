@@ -130,17 +130,44 @@ class OrderController(
 
     /**
      * Cancel an order orderID for the currently logged user (update its STATUS).
+     * This exploits a synchronous workflow, with OrderService behaving as orchestrator.
      * @return the DTO corresponding to the cancelled order.
      * @throws HttpStatus.NOT_FOUND if the user doesn't exist or the remote microservice doesn't respond.
      */
-    @GetMapping("/delete/{orderID}")
-    fun undoOrder(@PathVariable("orderID") orderID: String): ResponseEntity<OrderDTO> {
+    @GetMapping("/delete/{orderID}/sync")
+    fun undoOrderSync(@PathVariable("orderID") orderID: String): ResponseEntity<OrderDTO> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         logger.info { "Received DELETE on url='${currentRequest?.requestURL}'" }
 
         // invoke the business logic
-        val cancelled_order = orderService.undoOrder(orderID)
+        val cancelled_order = orderService.undoOrderSync(orderID)
+
+        // check the result
+        return when (cancelled_order.code) {
+            ExecutionResultType.CORRECT_EXECUTION -> ResponseEntity(cancelled_order.body, HttpStatus.OK)
+            ExecutionResultType.GENERIC_ERROR -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.HTTP_ERROR -> ResponseEntity(null, cancelled_order.http_code!!)
+            ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            ExecutionResultType.SOMEONE_ELSE_PROBLEM -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
+            else -> ResponseEntity(cancelled_order.body, HttpStatus.INTERNAL_SERVER_ERROR)
+        }
+    }
+
+
+    /**
+     * Cancel an order orderID for the currently logged user (update its STATUS).
+     * This exploits an asynchronous workflow, with Kafka behaving as choreography broker.
+     * @return the DTO corresponding to the cancelled order.
+     */
+    @GetMapping("/delete/{orderID}/async")
+    fun undoOrderAsync(@PathVariable("orderID") orderID: String): ResponseEntity<OrderDTO> {
+        // log incoming request
+        val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
+        logger.info { "Received DELETE on url='${currentRequest?.requestURL}'" }
+
+        // invoke the business logic
+        val cancelled_order = orderService.undoOrderAsync(orderID)
 
         // check the result
         return when (cancelled_order.code) {

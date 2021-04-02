@@ -27,37 +27,37 @@ class OrderserviceApplication(
         deliveryRepo.deleteAll()
         loggerRepo.deleteAll()
 
-        //ONLY NEEDED IN ASYNC MODE=====================================================================================
-        //As soon as order service wakes up, make a consistency control on the logger and rollback inconsistent status
-        val loggerList = loggerRepo.findAll()
-        for (orderLog in loggerList) {
-            when (orderLog.orderStatus) {
-                OrderLoggerStatus.PENDING -> {
-                    println("OrderServiceApplication.init: inconsistent order ${orderLog.orderID} found.")
-                    orderServiceAsync.failOrder(orderLog.orderID!!)
-                    loggerRepo.deleteById(ObjectId(orderLog.orderID))
-                    kafkaTemplate.send("rollback", orderLog.orderID)
-                }
-                OrderLoggerStatus.TRANSACTION_OK -> {
-                    println("OrderServiceApplication.init: inconsistent order ${orderLog.orderID} found.")
-                    orderServiceAsync.failOrder(orderLog.orderID!!)
-                    loggerRepo.deleteById(ObjectId(orderLog.orderID))
-                    kafkaTemplate.send("rollback", orderLog.orderID)
-                }
-                OrderLoggerStatus.DELIVERY_OK -> {
-                    println("OrderServiceApplication.init: inconsistent order ${orderLog.orderID} found.")
-                    orderServiceAsync.failOrder(orderLog.orderID!!)
-                    loggerRepo.deleteById(ObjectId(orderLog.orderID))
-                    kafkaTemplate.send("rollback", orderLog.orderID)
-                }
-                OrderLoggerStatus.PAID -> {
-                    println("OrderServiceApplication.init: found order ${orderLog.orderID} paid.")
-                }
-                OrderLoggerStatus.DELIVERING -> {
-                    println("OrderServiceApplication.init: found order ${orderLog.orderID} delivering.")
-                }
-            }
-        }
+//        //ONLY NEEDED IN ASYNC MODE=====================================================================================
+//        //As soon as order service wakes up, make a consistency control on the logger and rollback inconsistent status
+//        val loggerList = loggerRepo.findAll()
+//        for (orderLog in loggerList) {
+//            when (orderLog.orderStatus) {
+//                OrderLoggerStatus.PENDING -> {
+//                    println("OrderServiceApplication.init: inconsistent order ${orderLog.orderID} found.")
+//                    orderServiceAsync.failOrder(orderLog.orderID!!)
+//                    loggerRepo.deleteById(ObjectId(orderLog.orderID))
+//                    kafkaTemplate.send("rollback", orderLog.orderID)
+//                }
+//                OrderLoggerStatus.TRANSACTION_OK -> {
+//                    println("OrderServiceApplication.init: inconsistent order ${orderLog.orderID} found.")
+//                    orderServiceAsync.failOrder(orderLog.orderID!!)
+//                    loggerRepo.deleteById(ObjectId(orderLog.orderID))
+//                    kafkaTemplate.send("rollback", orderLog.orderID)
+//                }
+//                OrderLoggerStatus.DELIVERY_OK -> {
+//                    println("OrderServiceApplication.init: inconsistent order ${orderLog.orderID} found.")
+//                    orderServiceAsync.failOrder(orderLog.orderID!!)
+//                    loggerRepo.deleteById(ObjectId(orderLog.orderID))
+//                    kafkaTemplate.send("rollback", orderLog.orderID)
+//                }
+//                OrderLoggerStatus.PAID -> {
+//                    println("OrderServiceApplication.init: found order ${orderLog.orderID} paid.")
+//                }
+//                OrderLoggerStatus.DELIVERING -> {
+//                    println("OrderServiceApplication.init: found order ${orderLog.orderID} delivering.")
+//                }
+//            }
+//        }
 
 
 //        //Populate Order
