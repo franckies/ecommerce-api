@@ -1,5 +1,7 @@
 package it.polito.master.ap.group6.ecommerce.walletservice.listeners
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import it.polito.master.ap.group6.ecommerce.common.dtos.PlacedOrderDTO
 import it.polito.master.ap.group6.ecommerce.walletservice.miscellaneous.Response
 import it.polito.master.ap.group6.ecommerce.walletservice.miscellaneous.ResponseType
@@ -18,7 +20,10 @@ class WalletSagaListener(
 ) {
 
     @KafkaListener(groupId = "ecommerce", topics = ["create_order"])
-    fun createTransaction(placedOrder: PlacedOrderDTO) {
+    fun createTransaction(placedOrderString: String) {
+
+        val placedOrder = jacksonObjectMapper().readValue<PlacedOrderDTO>(placedOrderString)
+
         println("WalletSagaListener.createTransaction: Received Kafka message on topic create_order with message $placedOrder")
         val response: Response = walletServiceAsync.createTransaction(placedOrder)
         if (response.responseId == ResponseType.USER_WALLET_TRANSACTION) {
