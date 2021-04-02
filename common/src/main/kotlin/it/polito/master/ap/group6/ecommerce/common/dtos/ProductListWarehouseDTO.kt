@@ -9,6 +9,7 @@ data class WarehouseStockDTO (
 )
 
 data class ProductWarehouseDTO(
+    val id: String? = null,
     val name: String? = null,
     val category: String? = null,
     val currentPrice: Float? = null,

@@ -89,6 +89,7 @@ class WarehouseServiceImpl(
                 ))
             }
             val prodDTO = ProductWarehouseDTO(
+                id = product.id.toString(),
                 name = product.name,
                 category = product.category,
                 currentPrice = product.currentPrice,
