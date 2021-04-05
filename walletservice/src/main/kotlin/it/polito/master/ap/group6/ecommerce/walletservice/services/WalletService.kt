@@ -75,7 +75,8 @@ class WalletServiceImpl(
             if(transaction.status == TransactionStatus.ACCEPTED || transaction.status == TransactionStatus.PENDING){
 
                 wallet.total = wallet.total!! + transaction.amount!!
-                wallet.transactions?.find{it.id==orderID}?.status = status
+                wallet.transactions?.find{it.orderID==orderID}?.status = status
+                transaction.status = status
 
             }
 
