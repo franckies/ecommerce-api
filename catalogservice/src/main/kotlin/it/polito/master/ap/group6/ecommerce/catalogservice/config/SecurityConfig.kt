@@ -35,12 +35,14 @@ class SecurityConfig: WebSecurityConfigurerAdapter() {
         http.httpBasic() //select the type of authentication. This is the basic, there are others for microservices
             .and() //specify the rules
             .authorizeRequests()
-                // permit all methods on Warehouse microservice
+                // expose the product list even if not authenticated
+            .antMatchers("/catalog/products/show").permitAll()
+                // authentication required for all methods on Warehouse microservice
             .antMatchers("/catalog/products/**").authenticated()
             //.antMatchers("/catalog/products/admin/**").hasRole("ADMIN")
-                // permit all methods on Order microservice
+                // authentication required for all methods on Order microservice
             .antMatchers("/catalog/orders/**").authenticated()
-                // permit all methods on Wallet microservice
+                // authentication required for all methods on Wallet microservice
             .antMatchers("/catalog/wallet/**").authenticated()
             .anyRequest().authenticated()
 
