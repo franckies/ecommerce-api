@@ -15,6 +15,7 @@ import it.polito.master.ap.group6.ecommerce.orderservice.models.Order
 import it.polito.master.ap.group6.ecommerce.orderservice.models.OrderLogger
 import it.polito.master.ap.group6.ecommerce.orderservice.models.dtos.toDto
 import it.polito.master.ap.group6.ecommerce.orderservice.models.dtos.toModel
+import it.polito.master.ap.group6.ecommerce.orderservice.models.dtos.toPlacedOrderDto
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.DeliveryRepository
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.OrderLoggerRepository
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.OrderRepository
@@ -77,7 +78,7 @@ class OrderServiceSyncImpl(
         order.status = OrderStatus.PENDING
         order = orderRepository.save(order)
         //log the order
-        orderLoggerRepository.save(OrderLogger(placedOrder.sagaID, OrderLoggerStatus.PENDING, Date()))
+        //orderLoggerRepository.save(OrderLogger(placedOrder.sagaID, OrderLoggerStatus.PENDING, Date()))
 
         //STEP 1: check if there are enough money and lock them on the user wallet
         val step1 = checkWallet(ObjectId(order.id))
@@ -87,7 +88,7 @@ class OrderServiceSyncImpl(
             val res = Response.notEnoughMoney()
             res.body = order.toDto()
             //unlog the order
-            orderLoggerRepository.deleteById(ObjectId(order.id))
+            //orderLoggerRepository.deleteById(ObjectId(order.id))
             return res
         }
         //STEP 2: if there are enough money, submit the order and create the needed deliveries in PENDING status
@@ -98,7 +99,7 @@ class OrderServiceSyncImpl(
             val res = Response.productNotAvailable()
             res.body = order.toDto()
             //unlog the order
-            orderLoggerRepository.deleteById(ObjectId(order.id))
+            //orderLoggerRepository.deleteById(ObjectId(order.id))
             return res
         }
 
@@ -111,13 +112,13 @@ class OrderServiceSyncImpl(
             val res = Response.notEnoughMoney()
             res.body = order.toDto()
             //unlog the order
-            orderLoggerRepository.deleteById(ObjectId(order.id))
+            //orderLoggerRepository.deleteById(ObjectId(order.id))
             return res
         }
         order.status = OrderStatus.PAID
         order = orderRepository.save(order)
         //log the order
-        orderLoggerRepository.save(OrderLogger(order.id.toString(), OrderLoggerStatus.PAID, Date()))
+        //orderLoggerRepository.save(OrderLogger(order.id.toString(), OrderLoggerStatus.PAID, Date()))
         /**
          * Start the coroutine handling the delivery simulation.
          * If the order get CANCELED in the PAID status, the coroutine CANCEL all the associated deliveries.
@@ -221,7 +222,7 @@ class OrderServiceSyncImpl(
             undoDeliveries(ObjectId(order.id))
             undoTransaction(ObjectId(order.id))
             //unlog the order
-            orderLoggerRepository.deleteById(ObjectId(order.id))
+            //orderLoggerRepository.deleteById(ObjectId(order.id))
             println("OrderServiceSync.cancelOrder: Order ${order.id} canceled!")
         } else {
             println("OrderServiceSync.cancelOrder: Cannot cancel the order ${order.id}!")
@@ -295,7 +296,7 @@ class OrderServiceSyncImpl(
         try {
             deliveryList = RestTemplate().postForObject(
                 "http://${warehouse}/warehouse/orders", //"https://api.mocki.io/v1/6ace7eb0",
-                order.toDto(), DeliveryListDTO::class.java
+                order.toPlacedOrderDto(), DeliveryListDTO::class.java
             )
         } catch (e: HttpClientErrorException) {
             return when (e.statusCode) {

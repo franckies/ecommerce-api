@@ -12,6 +12,10 @@ fun Order.toDto(): OrderDTO {
     return OrderDTO(this.id, this.purchases?.map { it.toDto() }, this.status)
 }
 
+fun Order.toPlacedOrderDto(): PlacedOrderDTO{
+    return PlacedOrderDTO(this.id, this.buyerId, this.purchases?.map { it.toDto() }, this.deliveryAddress)
+}
+
 fun OrderDTO.toModel(): Order {
     return Order(null, this.purchases?.map { it.toModel() }, this.status, null)
 }

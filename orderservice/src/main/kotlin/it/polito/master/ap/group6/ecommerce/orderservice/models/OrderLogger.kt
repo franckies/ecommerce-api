@@ -7,7 +7,9 @@ import java.util.*
 
 @Document("orderLogger")
 data class OrderLogger (
-    @Id val orderID: String? = null,
+    val orderID: String? = null,
     val orderStatus: OrderLoggerStatus? = null,
-    val timestamp: Date? = null
-)
+    val timestamp: Date = Date()
+) {
+    @Id var id: String? = null
+}

@@ -57,6 +57,12 @@ class Response(
         fun invalidOrder(): Response {
             return Response(body=null, ResponseType.INVALID_ORDER, "The saga id for this order is invalid")
         }
+        fun waiting(): Response {
+            return Response(body= null, ResponseType.WAITING, "Waiting for all three steps to be completed")
+        }
+        fun orderRollback(): Response{
+            return Response(body= null, ResponseType.ROLLBACK_OK, "Order rollback done.")
+        }
 
     }
 }
@@ -77,5 +83,7 @@ enum class ResponseType{
     DELIVERIES_UNDONE,
     ORDER_CONFIRMED,
     TRANSACTION_UNDONE,
-    INVALID_ORDER
+    INVALID_ORDER,
+    WAITING,
+    ROLLBACK_OK
 }
