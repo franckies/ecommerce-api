@@ -3,6 +3,7 @@ package it.polito.master.ap.group6.ecommerce.warehouseservice.services
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import it.polito.master.ap.group6.ecommerce.common.dtos.*
+import it.polito.master.ap.group6.ecommerce.common.misc.MicroService
 import it.polito.master.ap.group6.ecommerce.warehouseservice.model.DeliveryLog
 import it.polito.master.ap.group6.ecommerce.warehouseservice.model.DeliveryLogStatus
 import it.polito.master.ap.group6.ecommerce.warehouseservice.model.Product
@@ -16,6 +17,7 @@ import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Service
 import java.util.*
 import org.springframework.kafka.core.KafkaTemplate
+import org.springframework.transaction.annotation.Transactional
 
 interface WarehouseService {
 
@@ -31,6 +33,7 @@ interface WarehouseService {
 }
 
 @Service
+@Transactional
 class WarehouseServiceImpl(
     private val warehouseRepository: WarehouseRepository,
     private val deliveryLogRepository: DeliveryLogRepository,
@@ -62,22 +65,6 @@ class WarehouseServiceImpl(
 
         // Query to MongoDB
         val queriedProducts: List<Product> = warehouseRepository.getProductsPerWarehouse()
-
-        // Convert result into ProductListAdminDTO
-//        val productList = mutableListOf<ProductAdminDTO>()
-//        for (product in queriedProducts) {
-//            val prodDTO = ProductDTO(id = product.id.toString(), name = product.name, category = product.category, currentPrice = product.currentPrice)
-//            for (st in product.stock!!) {
-//                val productAdminDTO = ProductAdminDTO(
-//                    product = prodDTO,
-//                    warehouse = WarehouseDTO(name = st.warehouseName!!, address = st.warehouseAddress),
-//                    warehouseQuantity = st.availableQuantity!!,
-//                    alarmLevel = getAlarmLevel(st.availableQuantity!!)
-//                )
-//                productList.add(productAdminDTO)
-//            }
-//        }
-//        return ProductListAdminDTO(productList = productList)
 
         val products = mutableListOf<ProductWarehouseDTO>()
         for (product in queriedProducts) {
@@ -361,24 +348,28 @@ class WarehouseServiceImpl(
 
         val result = getDeliveries(orderID = placedOrderDTO?.sagaID!!, purchases = placedOrderDTO.purchaseList)
         if (result==null) {
-            println("DeliveryList is null : request for rollback.")
-            kafkaRollback.send("rollback", placedOrderDTO.sagaID)
+            println("DeliveryList is null : emitting Rollback Request.")
+            val rollbackDTO = RollbackDTO(placedOrderDTO.sagaID, MicroService.WAREHOUSE_SERVICE)
+            kafkaRollback.send("rollback", jacksonObjectMapper().writeValueAsString(rollbackDTO))
         } else {
             if (result.deliveryList!=null) {
                 println("KafkaProducts : emitting the deliveryList.")
                 kafkaProducts.send("products_ok", jacksonObjectMapper().writeValueAsString(result))
 
             } else {
-                println("Requested products not available: request for rollback.")
-                kafkaRollback.send("rollback", placedOrderDTO.sagaID)
+                println("Requested products not available: emitting Rollback Request.")
+                val rollbackDTO = RollbackDTO(placedOrderDTO.sagaID, MicroService.WAREHOUSE_SERVICE)
+                kafkaRollback.send("rollback", jacksonObjectMapper().writeValueAsString(rollbackDTO))
             }
         }
     }
 
     @KafkaListener(groupId = "warehouseservice", topics = ["rollback"])
-    fun listener_rollback(orderID: String) {
-        println("Rollback requested.")
-        if (updateStocksAfterDeliveriesCancellation(orderID)) {
+//    fun listener_rollback(orderID: String) {
+    fun listener_rollback(rollbackDTOString : String) {
+        val rollbackDTO = jacksonObjectMapper().readValue<RollbackDTO>(rollbackDTOString!!)
+        println("Rollback Request received from ${rollbackDTO.sender}.")
+        if (updateStocksAfterDeliveriesCancellation(rollbackDTO.sagaID!!)) {
             println("Rollback correctly done.")
         }
     }
