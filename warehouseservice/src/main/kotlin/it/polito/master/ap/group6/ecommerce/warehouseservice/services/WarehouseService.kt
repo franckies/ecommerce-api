@@ -225,10 +225,11 @@ class WarehouseServiceImpl(
         }
         catch (e: Exception) {
             println("getDeliveries Exception: $e")
+            println("-> Skipping rollback")
             return false
         }
         if (deliveryLog.isEmpty) {
-            println("ERROR: OrderID not found in the log repository")
+            println("OrderID not found in the log repository -> skipping rollback")
             return false
         }
         val deliveries = deliveryLog.get().deliveries!!
