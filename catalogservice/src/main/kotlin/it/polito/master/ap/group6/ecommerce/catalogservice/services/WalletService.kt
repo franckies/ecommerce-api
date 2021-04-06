@@ -31,8 +31,8 @@ import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.Executi
 //======================================================================================================================
 interface WalletService {
     fun createWallet(user: User): ExecutionResult<String>
-    fun askEconomicInformation(userID: String): ExecutionResult<WalletDTO>
-    fun issueRecharge(userID: String, rechargeDto: RechargeDTO): ExecutionResult<String>
+    fun askEconomicInformation(userID: ObjectId): ExecutionResult<WalletDTO>
+    fun issueRecharge(userID: ObjectId, rechargeDto: RechargeDTO): ExecutionResult<String>
 }
 
 
@@ -91,10 +91,9 @@ class WalletServiceImpl(
         return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = wallet_id)
     }
 
-    override fun askEconomicInformation(userID: String): ExecutionResult<WalletDTO> {
+    override fun askEconomicInformation(userID: ObjectId): ExecutionResult<WalletDTO> {
         // check if user exists
-        val user_id = ObjectId(userID)
-        val user = userService.get(user_id)
+        val user = userService.get(userID)
         if (user.isEmpty)
             return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "User $userID does not exist")
 
@@ -131,10 +130,9 @@ class WalletServiceImpl(
     }
 
 
-    override fun issueRecharge(userID: String, rechargeDto: RechargeDTO): ExecutionResult<String> {
+    override fun issueRecharge(userID: ObjectId, rechargeDto: RechargeDTO): ExecutionResult<String> {
         // check if user exists
-        val user_id = ObjectId(userID)
-        val user = userService.get(user_id)
+        val user = userService.get(userID)
         if (user.isEmpty)
             return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "User $userID does not exist")
 

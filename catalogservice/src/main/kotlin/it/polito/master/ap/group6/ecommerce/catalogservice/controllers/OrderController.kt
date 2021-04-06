@@ -14,6 +14,8 @@ import org.springframework.web.context.request.ServletRequestAttributes
 import javax.servlet.http.HttpServletRequest
 import org.springframework.http.ResponseEntity
 import mu.KotlinLogging
+import org.bson.types.ObjectId
+import java.lang.IllegalArgumentException
 
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.OrderService
@@ -55,8 +57,16 @@ class OrderController(
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         logger.info { "Received POST on url='${currentRequest?.requestURL}' with body=${placedOrderDTO}" }
 
+        // cast input parameters
+        val user_id: ObjectId = try {
+            ObjectId(userID)
+        } catch (e: IllegalArgumentException) {
+            logger.error { "Impossible to convert $userID into ObjectID" }
+            return ResponseEntity(null, HttpStatus.BAD_REQUEST)
+        }
+
         // invoke the business logic
-        val created_order = orderService.createOrderSync(userID, placedOrderDTO)
+        val created_order = orderService.createOrderSync(user_id, placedOrderDTO)
 
         // check the result
         return when (created_order.code) {
@@ -83,8 +93,16 @@ class OrderController(
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         logger.info { "Received POST on url='${currentRequest?.requestURL}' with body=${placedOrderDTO}" }
 
+        // cast input parameters
+        val user_id: ObjectId = try {
+            ObjectId(userID)
+        } catch (e: IllegalArgumentException) {
+            logger.error { "Impossible to convert $userID into ObjectID" }
+            return ResponseEntity(null, HttpStatus.BAD_REQUEST)
+        }
+
         // invoke the business logic
-        val empty_placeholder = orderService.createOrderAsync(userID, placedOrderDTO)
+        val empty_placeholder = orderService.createOrderAsync(user_id, placedOrderDTO)
 
         // check the result
         return when (empty_placeholder.code) {
@@ -111,8 +129,16 @@ class OrderController(
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         logger.info { "Received GET on url='${currentRequest?.requestURL}'" }
 
+        // cast input parameters
+        val user_id: ObjectId = try {
+            ObjectId(userID)
+        } catch (e: IllegalArgumentException) {
+            logger.error { "Impossible to convert $userID into ObjectID" }
+            return ResponseEntity(null, HttpStatus.BAD_REQUEST)
+        }
+
         // invoke the business logic
-        val placed_order_list_dto = orderService.readOrderHistory(userID)
+        val placed_order_list_dto = orderService.readOrderHistory(user_id)
 
         // check the result
         return when (placed_order_list_dto.code) {
@@ -140,8 +166,16 @@ class OrderController(
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         logger.info { "Received DELETE on url='${currentRequest?.requestURL}'" }
 
+        // cast input parameters
+        val order_id: ObjectId = try {
+            ObjectId(orderID)
+        } catch (e: IllegalArgumentException) {
+            logger.error { "Impossible to convert $orderID into ObjectID" }
+            return ResponseEntity(null, HttpStatus.BAD_REQUEST)
+        }
+
         // invoke the business logic
-        val cancelled_order = orderService.undoOrderSync(orderID)
+        val cancelled_order = orderService.undoOrderSync(order_id)
 
         // check the result
         return when (cancelled_order.code) {
@@ -166,8 +200,16 @@ class OrderController(
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         logger.info { "Received DELETE on url='${currentRequest?.requestURL}'" }
 
+        // cast input parameters
+        val order_id: ObjectId = try {
+            ObjectId(orderID)
+        } catch (e: IllegalArgumentException) {
+            logger.error { "Impossible to convert $orderID into ObjectID" }
+            return ResponseEntity(null, HttpStatus.BAD_REQUEST)
+        }
+
         // invoke the business logic
-        val cancelled_order = orderService.undoOrderAsync(orderID)
+        val cancelled_order = orderService.undoOrderAsync(order_id)
 
         // check the result
         return when (cancelled_order.code) {

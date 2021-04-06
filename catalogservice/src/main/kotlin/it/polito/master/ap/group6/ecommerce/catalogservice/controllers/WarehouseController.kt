@@ -15,6 +15,8 @@ import javax.servlet.http.HttpServletRequest
 import javax.annotation.security.RolesAllowed
 import org.springframework.http.ResponseEntity
 import mu.KotlinLogging
+import org.bson.types.ObjectId
+import java.lang.IllegalArgumentException
 
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResultType
@@ -142,8 +144,16 @@ class WarehouseController(
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
         logger.info { "Received PUT on url='${currentRequest?.requestURL}' with body=${modifiedProduct}" }
 
+        // cast input parameters
+        val product_id: ObjectId = try {
+            ObjectId(productID)
+        } catch (e: IllegalArgumentException) {
+            logger.error { "Impossible to convert $productID into ObjectID" }
+            return ResponseEntity(null, HttpStatus.BAD_REQUEST)
+        }
+
         // invoke the business logic
-        val updated_product = warehouseService.modifyProduct(productID, modifiedProduct)
+        val updated_product = warehouseService.modifyProduct(product_id, modifiedProduct)
 
         // check the result
         return when (updated_product.code) {

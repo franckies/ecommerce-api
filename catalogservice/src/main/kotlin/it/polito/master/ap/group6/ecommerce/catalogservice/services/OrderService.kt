@@ -29,11 +29,11 @@ import org.springframework.kafka.core.KafkaTemplate
 //   Abstract declaration
 //======================================================================================================================
 interface OrderService {
-    fun createOrderSync(userID: String, placedOrderDTO: PlacedOrderDTO): ExecutionResult<OrderDTO>
-    fun createOrderAsync(userID: String, placedOrderDTO: PlacedOrderDTO): ExecutionResult<Any?>
-    fun readOrderHistory(userID: String): ExecutionResult<ShownOrderListDTO>
-    fun undoOrderSync(orderID: String): ExecutionResult<OrderDTO>
-    fun undoOrderAsync(orderID: String): ExecutionResult<OrderDTO>
+    fun createOrderSync(userID: ObjectId, placedOrderDTO: PlacedOrderDTO): ExecutionResult<OrderDTO>
+    fun createOrderAsync(userID: ObjectId, placedOrderDTO: PlacedOrderDTO): ExecutionResult<Any?>
+    fun readOrderHistory(userID: ObjectId): ExecutionResult<ShownOrderListDTO>
+    fun undoOrderSync(orderID: ObjectId): ExecutionResult<OrderDTO>
+    fun undoOrderAsync(orderID: ObjectId): ExecutionResult<OrderDTO>
 }
 
 
@@ -62,10 +62,9 @@ class OrderServiceImpl(
 
 
     //------- methods ----------------------------------------------------------
-    override fun createOrderSync(userID: String, placedOrderDTO: PlacedOrderDTO): ExecutionResult<OrderDTO> {
+    override fun createOrderSync(userID: ObjectId, placedOrderDTO: PlacedOrderDTO): ExecutionResult<OrderDTO> {
         // check if user exists
-        val user_id = ObjectId(userID)
-        val user = userService.get(user_id)
+        val user = userService.get(userID)
         if (user.isEmpty)
             return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "User $userID does not exist")
 
@@ -128,10 +127,9 @@ class OrderServiceImpl(
         return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = order_dto)
     }
 
-    override fun createOrderAsync(userID: String, placedOrderDTO: PlacedOrderDTO): ExecutionResult<Any?> {
+    override fun createOrderAsync(userID: ObjectId, placedOrderDTO: PlacedOrderDTO): ExecutionResult<Any?> {
         // check if user exists
-        val user_id = ObjectId(userID)
-        val user = userService.get(user_id)
+        val user = userService.get(userID)
         if (user.isEmpty)
             return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "User $userID does not exist")
 
@@ -163,10 +161,9 @@ class OrderServiceImpl(
         return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = null)  // being async, nothing can go wrong and there is no immediate answer
     }
 
-    override fun readOrderHistory(userID: String): ExecutionResult<ShownOrderListDTO> {
+    override fun readOrderHistory(userID: ObjectId): ExecutionResult<ShownOrderListDTO> {
         // check if user exists
-        val user_id = ObjectId(userID)
-        val user = userService.get(user_id)
+        val user = userService.get(userID)
         if (user.isEmpty)
             return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "User $userID does not exist")
 
@@ -203,24 +200,23 @@ class OrderServiceImpl(
         return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = res)
     }
 
-    override fun undoOrderSync(orderID: String): ExecutionResult<OrderDTO> {
+    override fun undoOrderSync(orderID: ObjectId): ExecutionResult<OrderDTO> {
         return _rollback(orderID,"http://${orderservice_url}/order/delete/$orderID/sync")
     }
 
-    override fun undoOrderAsync(orderID: String): ExecutionResult<OrderDTO> {
+    override fun undoOrderAsync(orderID: ObjectId): ExecutionResult<OrderDTO> {
         return _rollback(orderID, "http://${orderservice_url}/order/delete/$orderID/async")
     }
 
 
     //------- internal facilities ----------------------------------------------
-    private fun _checkDeliveryAddress(userID: String, deliveryAddress: String?): Boolean {
+    private fun _checkDeliveryAddress(userID: ObjectId, deliveryAddress: String?): Boolean {
         // check input parameters
         if (deliveryAddress == null)
             return false
 
         // retrieve user data from the DB
-        val user_id = ObjectId(userID)
-        val user = userService.get(user_id)
+        val user = userService.get(userID)
         if (user.isEmpty)
             return false
 
@@ -228,15 +224,14 @@ class OrderServiceImpl(
         return user.get().deliveryAddress == deliveryAddress
     }
 
-    private fun _rollback(orderID: String, url: String): ExecutionResult<OrderDTO> {
+    private fun _rollback(orderID: ObjectId, url: String): ExecutionResult<OrderDTO> {
         // check if exists SAGA for this order
-        val order_id: ObjectId = ObjectId(orderID)
-        val saga_obj = operationRepository.findBySagaId(order_id)  // assuming sagaId==orderId
+        val saga_obj = operationRepository.findBySagaId(orderID)  // assuming sagaId==orderId
         if (saga_obj.isEmpty)
-            return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "There is no SAGA for ID $order_id")
+            return ExecutionResult(code = ExecutionResultType.MISSING_IN_DB, message = "There is no SAGA for ID $orderID")
 
         // log SAGA operation
-        operationRepository.deleteBySagaId(order_id)  // TODO understand exact meaning
+        operationRepository.deleteBySagaId(orderID)  // TODO understand exact meaning
 
         // submit remotely to the Order microservice
         val url: String = url

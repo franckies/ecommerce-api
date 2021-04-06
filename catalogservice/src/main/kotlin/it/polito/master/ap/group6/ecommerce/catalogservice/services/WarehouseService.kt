@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus
 import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResult
 import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResultType
 import it.polito.master.ap.group6.ecommerce.common.dtos.*
+import org.bson.types.ObjectId
 
 
 //======================================================================================================================
@@ -28,7 +29,7 @@ interface WarehouseService {
 //    fun showProductsPerWarehouse(): ExecutionResult<ProductListAdminDTO>
     fun showProductsPerWarehouse(): ExecutionResult<ProductListWarehouseDTO>
     fun createProduct(product: ProductAdminDTO): ExecutionResult<ProductDTO>
-    fun modifyProduct(productID: String, modified_product: ProductAdminDTO): ExecutionResult<ProductDTO>
+    fun modifyProduct(productID: ObjectId, modified_product: ProductAdminDTO): ExecutionResult<ProductDTO>
 }
 
 
@@ -159,7 +160,7 @@ class WarehouseServiceImpl(
         return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = created_product)
     }
 
-    override fun modifyProduct(productID: String, modified_product: ProductAdminDTO): ExecutionResult<ProductDTO> {
+    override fun modifyProduct(productID: ObjectId, modified_product: ProductAdminDTO): ExecutionResult<ProductDTO> {
         // submit remotely to the Warehouse microservice
         val url: String = "http://${warehouseservice_url}/warehouse/products/${productID}"
         var updated_product: ProductDTO? = null

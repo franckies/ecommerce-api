@@ -15,13 +15,15 @@ import org.springframework.web.context.request.RequestContextHolder
 import org.springframework.web.context.request.ServletRequestAttributes
 import javax.servlet.http.HttpServletRequest
 import org.springframework.http.ResponseEntity
+import mu.KotlinLogging
+import java.lang.IllegalArgumentException
+import javax.annotation.security.RolesAllowed
 
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.WalletService
 import it.polito.master.ap.group6.ecommerce.common.dtos.RechargeDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.WalletDTO
 import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResultType
-import javax.annotation.security.RolesAllowed
 
 
 //======================================================================================================================
@@ -38,7 +40,11 @@ import javax.annotation.security.RolesAllowed
 class WalletController(
     @Autowired private val walletService: WalletService
 ) {
+    //------- attributes -------------------------------------------------------
+    private val logger = KotlinLogging.logger {}
 
+
+    //------- methods ----------------------------------------------------------
     /**
      * Retrieve the wallet information (total and transaction list) for the currently logged user.
      * @return the DTO corresponding to the wallet+transactions of the given user.
@@ -48,10 +54,18 @@ class WalletController(
     fun getEconomicInformation(@PathVariable("userID") userID: String): ResponseEntity<WalletDTO> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
-        println("Received GET on url='${currentRequest?.requestURL}'")
+        logger.info { "Received GET on url='${currentRequest?.requestURL}'" }
+
+        // cast input parameters
+        val user_id: ObjectId = try {
+            ObjectId(userID)
+        } catch (e: IllegalArgumentException) {
+            logger.error { "Impossible to convert $userID into ObjectID" }
+            return ResponseEntity(null, HttpStatus.BAD_REQUEST)
+        }
 
         // invoke the business logic
-        val wallet_dto = walletService.askEconomicInformation(userID)
+        val wallet_dto = walletService.askEconomicInformation(user_id)
 
         // check the result
         return when (wallet_dto.code) {
@@ -78,10 +92,18 @@ class WalletController(
                       @RequestBody rechargeDto: RechargeDTO): ResponseEntity<String> {
         // log incoming request
         val currentRequest: HttpServletRequest? = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
-        println("Received POST on url='${currentRequest?.requestURL}' with body=${rechargeDto}")
+        logger.info { "Received POST on url='${currentRequest?.requestURL}' with body=${rechargeDto}" }
+
+        // cast input parameters
+        val user_id: ObjectId = try {
+            ObjectId(userID)
+        } catch (e: IllegalArgumentException) {
+            logger.error { "Impossible to convert $userID into ObjectID" }
+            return ResponseEntity(null, HttpStatus.BAD_REQUEST)
+        }
 
         // invoke the business logic
-        val transaction_id = walletService.issueRecharge(userID, rechargeDto)
+        val transaction_id = walletService.issueRecharge(user_id, rechargeDto)
 
         // check the result
         return when (transaction_id.code) {
