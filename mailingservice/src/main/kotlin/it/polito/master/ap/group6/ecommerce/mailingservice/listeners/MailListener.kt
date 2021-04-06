@@ -3,6 +3,9 @@ package it.polito.master.ap.group6.ecommerce.mailingservice.listeners
 import com.google.gson.Gson
 import it.polito.master.ap.group6.ecommerce.common.dtos.MailingInfoDTO
 import it.polito.master.ap.group6.ecommerce.common.dtos.PlacedOrderDTO
+import it.polito.master.ap.group6.ecommerce.mailingservice.model.MailType
+import it.polito.master.ap.group6.ecommerce.mailingservice.model.MailingLog
+import it.polito.master.ap.group6.ecommerce.mailingservice.repositories.LogRepository
 import it.polito.master.ap.group6.ecommerce.mailingservice.repositories.MailingRepository
 import org.apache.commons.mail.DefaultAuthenticator
 import org.apache.commons.mail.Email
@@ -11,6 +14,7 @@ import org.bson.types.ObjectId
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Service
+import java.util.*
 import javax.mail.internet.AddressException
 import javax.mail.internet.InternetAddress
 
@@ -22,12 +26,27 @@ import javax.mail.internet.InternetAddress
  */
 @Service
 class MailListener(
-    @Autowired private val mailingRepository: MailingRepository
+    @Autowired private val mailingRepository: MailingRepository,
+    @Autowired private val logRepository : LogRepository
 ) {
     private val json = Gson()
     @KafkaListener(groupId = "mailingservice", topics = ["order_tracking"])
     fun sendInfoMail(mailingInfoDTOSer: String) {
         val mailingInfoDTO: MailingInfoDTO = json.fromJson(mailingInfoDTOSer, MailingInfoDTO::class.java)
+
+        val mailingLog : Optional<MailingLog>
+        try {
+            mailingLog = logRepository.getOrderInfoMailingLogByOrderIDAndStatus(mailingInfoDTO.orderId!!, orderStatus = mailingInfoDTO.orderStatus!!)
+            if (!mailingLog.isEmpty) {
+                println("ERROR: Order info mail already sent for this orderID.")
+                return
+            }
+        } catch (e: Exception) {
+            println("sendInfoMail Exception: $e")
+            return
+        }
+
+
         val optionalUser = mailingRepository.findById(ObjectId(mailingInfoDTO.userId))
         if (optionalUser.isEmpty) {
             println("MailListener.sendMail: there aren't user with id ${mailingInfoDTO.userId}")
@@ -62,13 +81,34 @@ class MailListener(
             email.setMsg(textMessage)
             email.addTo(emailAddr.toString())
             email.send()
+            println("sendInfoMail : mail sent.")
+            val mailingLog = MailingLog(orderID = mailingInfoDTO.orderId, type = MailType.ORDERINFO, status = mailingInfoDTO.orderStatus)
+            logRepository.save(mailingLog)
+            println("sendInfoMail : log saved.")
         } catch (e: Exception) {
             println("MailListener.sendMail: {${e.cause}. Impossible to send the email.")
         }
     }
 
     @KafkaListener(groupId = "mailingservice", topics = ["alarm_level"])
-    fun sendAlarmMail(alarmInfo: String) {
+    fun sendAlarmMail(mailingInfoString: String) {
+
+        val mailingInfoDTO: MailingInfoDTO = json.fromJson(mailingInfoString, MailingInfoDTO::class.java)
+
+        val mailingLog : Optional<MailingLog>
+        try {
+            mailingLog = logRepository.getAlarmInfoMailingLogByOrderID(mailingInfoDTO.orderId!!)
+            if (!mailingLog.isEmpty) {
+                println("ERROR: Alarm Level mail already sent for this orderID.")
+                return
+            }
+        } catch (e: Exception) {
+            println("sendAlarmMail Exception: $e")
+            return
+        }
+
+        val alarmInfo = mailingInfoDTO.message
+
         val optionalAdmins = mailingRepository.findUserDTOByRole("ADMIN")
         if (optionalAdmins.isEmpty) {
             println("MailListener.sendMail: there aren't admins in the database.")
@@ -105,6 +145,10 @@ class MailListener(
                 }
             }
             email.send()
+            println("sendAlarmMail : mail sent.")
+            val mailingLog = MailingLog(orderID = mailingInfoDTO.orderId, type = MailType.ALARMINFO)
+            logRepository.save(mailingLog)
+            println("sendAlarmMail : log saved.")
         } catch (e: Exception) {
             println("MailListener.sendMail: {${e.cause}. Impossible to send the email.")
         }
