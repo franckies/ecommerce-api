@@ -40,7 +40,10 @@ class WalletSagaListener(
     }
 
     @KafkaListener(groupId = "walletservice", topics = ["rollback"])
-    fun rollbackTransaction(rollback: RollbackDTO) {
+    fun rollbackTransaction(rollbackString: String) {
+
+        val rollback = jacksonObjectMapper().readValue<RollbackDTO>(rollbackString)
+
         println("WalletSagaListener.rollbackTransaction: Received Kafka message on topic rollback with message ${rollback.sagaID}, sent by ${rollback.sender}")
         val response: Response = walletService.undoTransaction(rollback.sagaID,
             it.polito.master.ap.group6.ecommerce.common.misc.TransactionStatus.REFUSED)
