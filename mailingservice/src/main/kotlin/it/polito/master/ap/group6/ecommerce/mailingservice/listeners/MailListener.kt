@@ -71,13 +71,12 @@ class MailListener(
             email.isSSLOnConnect = true
             email.setFrom("noreply_ecommerceapi@gmail.com")
             email.subject = "News about your order ${mailingInfoDTO.orderId}"
-            val textMessage: String =
-                """
-                    Hi ${user.name}! 
-                    ${mailingInfoDTO.message}
-                    Your order number ${mailingInfoDTO.orderId} is now in the status ${mailingInfoDTO.orderStatus}.
-                    For any question, do not hesitate to contact us at our call-center +39 3473102002.
-            """
+            val textMessage: String = """
+                Hi ${user.name}! 
+                ${mailingInfoDTO.message} 
+                Your order number ${mailingInfoDTO.orderId} is now in the status ${mailingInfoDTO.orderStatus}.
+                For any question, do not hesitate to contact us at our call-center +39 3473102002.
+                """.trimIndent()
             email.setMsg(textMessage)
             email.addTo(emailAddr.toString())
             email.send()
@@ -125,11 +124,10 @@ class MailListener(
             email.setFrom("noreply_ecommerceapi@gmail.com")
             email.subject = "Alarm level information"
             email.addTo("noreply_ecommerceapi@gmail.com")
-            val textMessage: String =
-                """
-                    Hi! 
-                    $alarmInfo
-                """
+            val textMessage: String = """
+                Hi! 
+                $alarmInfo
+                """.trimIndent()
             email.setMsg(textMessage)
             //check address validity and add to bcc
             val emailAddrList: List<InternetAddress> = admins.map { InternetAddress(it.email) }

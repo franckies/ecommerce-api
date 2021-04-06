@@ -19,6 +19,7 @@ import it.polito.master.ap.group6.ecommerce.orderservice.repositories.DeliveryRe
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.OrderLoggerRepository
 import it.polito.master.ap.group6.ecommerce.orderservice.repositories.OrderRepository
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.bson.types.ObjectId
@@ -26,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.*
 
 interface OrderServiceAsync {
     fun createOrder(placedOrder: PlacedOrderDTO): Response
@@ -63,42 +65,46 @@ class OrderServiceAsyncImpl(
             println("OrderServiceAsync.createOrder: skipped duplicate order ${placedOrder.sagaID.toString()}")
             return Response.invalidOrder()
         }
+
+        val orderLoggerOptionalFailed =
+            orderLoggerRepository.findByOrderIDAndOrderStatus(placedOrder.sagaID.toString(), OrderLoggerStatus.FAILED)
+        if (orderLoggerOptionalFailed.isPresent) {
+            println("OrderServiceAsync.createOrder: skipped duplicate order ${placedOrder.sagaID.toString()}")
+            return Response.invalidOrder()
+        }
+
         //STEP 2: log the created order
         val order: Order = placedOrder.toModel()
         order.status = OrderStatus.PENDING
         orderRepository.save(order)
         orderLoggerRepository.save(OrderLogger(placedOrder.sagaID, OrderLoggerStatus.PENDING))
 
-        //STEP 3: check if all three conditions are satisfied
-        val orderLoggerListOptional = orderLoggerRepository.findByOrderID(placedOrder.sagaID.toString())
-        if (checkConditions(placedOrder.sagaID.toString())) {
-            order.status = OrderStatus.PAID
-            orderRepository.save(order)
-            orderLoggerRepository.save(OrderLogger(placedOrder.sagaID, OrderLoggerStatus.PAID))
-            sendEmail(order.id.toString(), "The order has been confirmed!")
-            //start deliveries
-            deliveryService.startDeliveries(order.id.toString())
-            return Response.orderConfirmed()
-        }
-
-        //timer for the other services to answer
-        GlobalScope.launch() {
+        //STEP 3: set a timer and either create or rollback the order
+        val performOrder = GlobalScope.launch() {
             delay(2000L)
             if (checkConditions(placedOrder.sagaID.toString())) {
-                println("OrderServiceAsync.createOrder: timer expired and all is ok.")
+                println("OrderServiceAsync.createOrder.performOrder: Timer expired. The order is confirmed.")
+                order.status = OrderStatus.PAID
+                orderRepository.save(order)
+                sendEmail(order.id.toString(), "The order has been confirmed!")
+                //start deliveries
+                deliveryService.startDeliveries(order.id.toString())
+                //return Response.orderConfirmed()
             } else {
-                println("OrderServiceAsync.createOrder: timer expired and rollbacking.")
+                println("OrderServiceAsync.createOrder.performOrder: Timer expired. The order is failed and a rollback is requested.")
                 kafkaTemplate.send(
                     "rollback",
                     Gson().toJson(RollbackDTO(placedOrder.sagaID.toString(), MicroService.ORDER_SERVICE)).toString()
                 )
             }
+            this.cancel()
         }
-        //If all three conditions are not satisfied, wait for the other responses.
+        //Wait for the other responses.
         return Response.waiting()
     }
 
     override fun productsChecked(deliveryList: DeliveryListDTO): Response {
+        //sleep(500L)
         //STEP 1: check if delivery ok is already logged
         val orderLoggerOptional = orderLoggerRepository.findByOrderIDAndOrderStatus(
             deliveryList.orderID.toString(),
@@ -113,24 +119,27 @@ class OrderServiceAsyncImpl(
         //save the received deliveries
         saveDeliveries(deliveryList, deliveryList.deliveryAddress!!)
 
-        //STEP 3: check if all three conditions are satisfied
-        val orderLoggerListOptional = orderLoggerRepository.findByOrderID(deliveryList.orderID.toString())
-        if (checkConditions(deliveryList.orderID.toString())) {
-            val order = orderRepository.findById(ObjectId(deliveryList.orderID)).get()
-            order.status = OrderStatus.PAID
-            orderRepository.save(order)
-            orderLoggerRepository.save(OrderLogger(deliveryList.orderID.toString(), OrderLoggerStatus.PAID))
-            sendEmail(order.id.toString(), "The order has been confirmed!")
-            //start deliveries
-            deliveryService.startDeliveries(order.id.toString())
-            return Response.orderConfirmed()
+        //If the create order is not received within a given timer, then rollback the order.
+        val creationTimer = GlobalScope.launch {
+            delay(10_000L)
+            val orderLoggerOptional =
+                orderLoggerRepository.findByOrderIDAndOrderStatus(deliveryList.orderID.toString(), OrderLoggerStatus.PENDING)
+            if (orderLoggerOptional.isEmpty) {
+                println("OrderServiceAsync.productsChecked.creationTimer: Timer expired. The order is failed and a rollback is requested.")
+                kafkaTemplate.send(
+                    "rollback",
+                    Gson().toJson(RollbackDTO(deliveryList.orderID.toString(), MicroService.ORDER_SERVICE)).toString()
+                )
+            }
+            this.cancel()
         }
 
-        //If all three conditions are not satisfied, wait for the other responses.
+        //Wait for the other responses.
         return Response.waiting()
     }
 
     override fun walletChecked(orderId: String): Response {
+        //sleep(1000L)
         //STEP 1: check if transaction ok is already logged
         val orderLoggerOptional = orderLoggerRepository.findByOrderIDAndOrderStatus(
             orderId,
@@ -143,19 +152,21 @@ class OrderServiceAsyncImpl(
         //STEP 2: log the created order
         orderLoggerRepository.save(OrderLogger(orderId, OrderLoggerStatus.TRANSACTION_OK))
 
-        //STEP 3: check if all three conditions are satisfied
-        val orderLoggerListOptional = orderLoggerRepository.findByOrderID(orderId)
-        if (checkConditions(orderId)) {
-            val order = orderRepository.findById(ObjectId(orderId)).get()
-            order.status = OrderStatus.PAID
-            orderRepository.save(order)
-            orderLoggerRepository.save(OrderLogger(orderId, OrderLoggerStatus.PAID))
-            sendEmail(order.id.toString(), "The order has been confirmed!")
-            //start deliveries
-            deliveryService.startDeliveries(order.id.toString())
-            return Response.orderConfirmed()
+        //If the create order is not received within a given timer, then rollback the order.
+        val creationTimer = GlobalScope.launch {
+            delay(10_000L)
+            val orderLoggerOptional =
+                orderLoggerRepository.findByOrderIDAndOrderStatus(orderId.toString(), OrderLoggerStatus.PENDING)
+            if (orderLoggerOptional.isEmpty) {
+                println("OrderServiceAsync.walletChecked.creationTimer: Timer expired. The order is failed and a rollback is requested.")
+                kafkaTemplate.send(
+                    "rollback",
+                    Gson().toJson(RollbackDTO(orderId.toString(), MicroService.ORDER_SERVICE)).toString()
+                )
+            }
+            this.cancel()
         }
-        //If all three conditions are not satisfied, wait for the other responses.
+        //Wait for the other responses.
         return Response.waiting()
     }
 
@@ -228,10 +239,10 @@ class OrderServiceAsyncImpl(
             return
         }
         val order = orderOptional.get()
-        println("OrderService.sendEmail: Published on topic order_tracking with message.")
+        println("OrderService.sendEmail: Published on topic order_tracking with message $message.")
         kafkaTemplate.send(
             "order_tracking",
-            Gson().toJson(MailingInfoDTO(order.buyerId, order.status, order.id, message)).toString()
+            Gson().toJson(MailingInfoDTO(order.buyerId, order.status, order.id, message, null, null)).toString()
         )
     }
 
@@ -241,7 +252,7 @@ class OrderServiceAsyncImpl(
             return false
         }
         val orderLoggerList = orderLoggerListOptional.get()
-        val orderLoggerStatusList = orderLoggerList.map{it.orderStatus}
+        val orderLoggerStatusList = orderLoggerList.map { it.orderStatus }
         if (OrderLoggerStatus.FAILED !in orderLoggerStatusList) {
             return (OrderLoggerStatus.DELIVERY_OK in orderLoggerStatusList
                     && OrderLoggerStatus.TRANSACTION_OK in orderLoggerStatusList
@@ -257,10 +268,8 @@ class OrderServiceAsyncImpl(
         }
         val orderLoggerList = orderLoggerListOptional.get()
 
-        val orderLoggerStatusList = orderLoggerList.map{it.orderStatus}
+        val orderLoggerStatusList = orderLoggerList.map { it.orderStatus }
 
         return OrderLoggerStatus.FAILED in orderLoggerStatusList
     }
-
-
 }
