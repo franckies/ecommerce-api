@@ -155,7 +155,9 @@ class OrderServiceImpl(
         // emit the Saga Object on the Kafka topic
         val serialized_placedorder: String? = mapper.writeValueAsString(filled_dto)  //TODO: try Serializable on PlacedOrderDTO
         //kafkaTemplateOrder.send("create_order", filled_dto)
-        kafkaTemplateOrder.send("create_order", serialized_placedorder)
+        val topic: String = "create_order"
+        println("Emitting on topic '$topic', message $serialized_placedorder")
+        kafkaTemplateOrder.send(topic, serialized_placedorder)
 
         // provide requested outcome
         return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = null)  // being async, nothing can go wrong and there is no immediate answer
