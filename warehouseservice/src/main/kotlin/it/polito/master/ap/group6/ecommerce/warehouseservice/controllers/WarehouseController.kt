@@ -39,10 +39,11 @@ class WarehouseController(val warehouseService: WarehouseService) {
     }
 
     @PostMapping("/warehouse/orders")
-    fun getDeliveries(@RequestBody orderDTO: OrderDTO) : ResponseEntity<DeliveryListDTO?> {
+//    fun getDeliveries(@RequestBody orderDTO: OrderDTO) : ResponseEntity<DeliveryListDTO?> {
+    fun getDeliveries(@RequestBody placedOrderDTO: PlacedOrderDTO) : ResponseEntity<DeliveryListDTO?> {
         println("WarehouseService.getDeliveries() invoked.")
         val response : ResponseEntity<DeliveryListDTO?>
-        val result = warehouseService.getDeliveries(orderDTO.orderID!!, orderDTO.purchases)
+        val result = warehouseService.getDeliveries(placedOrderDTO.sagaID!!, placedOrderDTO.purchaseList, placedOrderDTO.deliveryAddress!!)
         if (result==null) {
             println("WarehouseService.getDeliveries() : returning CONFLICT.")
             response = ResponseEntity(null, HttpStatus.CONFLICT)

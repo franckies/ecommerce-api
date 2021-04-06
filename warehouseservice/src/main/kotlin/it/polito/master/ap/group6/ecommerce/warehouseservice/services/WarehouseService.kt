@@ -26,7 +26,7 @@ interface WarehouseService {
     fun getProductsPerWarehouse(): ProductListWarehouseDTO
     fun insertNewProductInWarehouse(productAdminDTO: ProductAdminDTO): ProductAdminDTO? // return productAdminDTO if inserted, null otherwise
     fun checkAvailability(purchases: List<PurchaseDTO>): Boolean?
-    fun getDeliveries(orderID : String, purchases : List<PurchaseDTO>?): DeliveryListDTO? // return filled DeliveryList if requested products are available, empty DeliveryList if not available, null if do not exist
+    fun getDeliveries(orderID : String, purchases : List<PurchaseDTO>?, deliveryAddress: String?): DeliveryListDTO? // return filled DeliveryList if requested products are available, empty DeliveryList if not available, null if do not exist
     fun updateStocksAfterDeliveriesCancellation(orderID: String) : Boolean // return true if restore of product quantities is ok, false otherwise
     fun updateProductInWarehouse(productID:String, productAdminDTO: ProductAdminDTO) : ProductAdminDTO? // return productAdminDTO if updated, null otherwise
     fun getProductByID(productID: String) : Product?
@@ -122,7 +122,7 @@ class WarehouseServiceImpl(
     }
 
 //    override fun getDeliveries(orderDTO: OrderDTO) : DeliveryListDTO? {
-    override fun getDeliveries(orderID : String, purchases : List<PurchaseDTO>?) : DeliveryListDTO? {
+    override fun getDeliveries(orderID : String, purchases : List<PurchaseDTO>?, deliveryAddress: String?) : DeliveryListDTO? {
 
         when (checkAvailability(purchases!!) ) {
             null -> {
@@ -131,7 +131,7 @@ class WarehouseServiceImpl(
             }
             false -> {
                 println("Requested products not available")
-                return DeliveryListDTO(orderID, null)
+                return DeliveryListDTO(orderID, null, deliveryAddress = null)
             }
             else -> {
                 println("Requested products available: preparing deliveries from each warehouse")
@@ -192,7 +192,7 @@ class WarehouseServiceImpl(
                 for ((key, value) in mapDeliveries) {
                     deliveryList.add(DeliveryDTO(key, value))
                 }
-                val deliveryListDTO = DeliveryListDTO(orderID, deliveryList)
+                val deliveryListDTO = DeliveryListDTO(orderID, deliveryList, deliveryAddress)
 
                 deliveryLogRepository.save(
                     DeliveryLog(orderID = orderID, deliveries =  deliveryList, status = DeliveryLogStatus.SHIPPED, timestamp = Date())
@@ -346,7 +346,7 @@ class WarehouseServiceImpl(
         println("Create order requested.")
         val placedOrderDTO = jacksonObjectMapper().readValue<PlacedOrderDTO>(placedOrderDTOString!!)
 
-        val result = getDeliveries(orderID = placedOrderDTO?.sagaID!!, purchases = placedOrderDTO.purchaseList)
+        val result = getDeliveries(orderID = placedOrderDTO?.sagaID!!, purchases = placedOrderDTO.purchaseList, deliveryAddress = placedOrderDTO.deliveryAddress)
         if (result==null) {
             println("DeliveryList is null : emitting Rollback Request.")
             val rollbackDTO = RollbackDTO(placedOrderDTO.sagaID, MicroService.WAREHOUSE_SERVICE)
