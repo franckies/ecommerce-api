@@ -72,14 +72,24 @@ class OrderServiceAsyncImpl(
         orderLoggerRepository.save(OrderLogger(placedOrder.sagaID, OrderLoggerStatus.PENDING, Date()))
 
         //timer for the other services to answer
-        GlobalScope.launch(){
+        GlobalScope.launch() {
             delay(120_000L)
             val orderLogger = orderLoggerRepository.findById(ObjectId(order.id))
-            if(orderLogger.isPresent){
-                when(orderLogger.get().orderStatus){
-                    OrderLoggerStatus.PENDING -> kafkaTemplate.send("rollback", orderLogger.get().orderID)
-                    OrderLoggerStatus.DELIVERY_OK -> kafkaTemplate.send("rollback", orderLogger.get().orderID)
-                    OrderLoggerStatus.TRANSACTION_OK -> kafkaTemplate.send("rollback", orderLogger.get().orderID)
+            if (orderLogger.isPresent) {
+                when (orderLogger.get().orderStatus) {
+                    OrderLoggerStatus.PENDING -> {
+                        println("OrderService.timer: published on topic cancel_order.")
+                        kafkaTemplate.send("rollback", orderLogger.get().orderID)
+                    }
+                    OrderLoggerStatus.DELIVERY_OK -> {
+                        println("OrderService.timer: published on topic cancel_order.")
+                        kafkaTemplate.send("rollback", orderLogger.get().orderID)
+                    }
+
+                    OrderLoggerStatus.TRANSACTION_OK -> {
+                        println("OrderService.timer: published on topic cancel_order.")
+                        kafkaTemplate.send("rollback", orderLogger.get().orderID)
+                    }
                     else -> println("OrderServiceAsync.createOrder: timer expired and all is ok.")
                 }
             }
@@ -93,11 +103,11 @@ class OrderServiceAsyncImpl(
         val orderId: ObjectId = ObjectId(deliveryList.orderID)
         val orderLoggerOptional = orderLoggerRepository.findById(orderId)
         //If the order is not logget, something went wrong. Rollback all
-        if(orderLoggerOptional.isEmpty){
+        if (orderLoggerOptional.isEmpty) {
             failOrder(orderId.toString())
             return Response.invalidOrder()
         }
-        when(orderLoggerOptional.get().orderStatus){
+        when (orderLoggerOptional.get().orderStatus) {
             //If the order is pending, then the warehouse is the first answering, and the deliveries are saved.
             OrderLoggerStatus.PENDING -> {
                 orderLoggerRepository.save(OrderLogger(orderId.toString(), OrderLoggerStatus.DELIVERY_OK, Date()))
@@ -132,11 +142,11 @@ class OrderServiceAsyncImpl(
     override fun walletChecked(orderId: String): Response {
         val orderLoggerOptional = orderLoggerRepository.findById(ObjectId(orderId))
         //If the order is not logged, something went wrong. Rollback all
-        if(orderLoggerOptional.isEmpty){
+        if (orderLoggerOptional.isEmpty) {
             failOrder(orderId)
             return Response.invalidOrder()
         }
-        when(orderLoggerOptional.get().orderStatus){
+        when (orderLoggerOptional.get().orderStatus) {
             //If the order is pending, then the wallet is the first answering, and the payment is completed.
             OrderLoggerStatus.PENDING -> {
                 orderLoggerRepository.save(OrderLogger(orderId, OrderLoggerStatus.TRANSACTION_OK, Date()))
@@ -177,6 +187,7 @@ class OrderServiceAsyncImpl(
             orderRepository.save(order)
             //delete the logs for that order
             orderLoggerRepository.deleteById(orderId)
+            println("OrderService.cancelOrder: published on topic cancel_order with message $orderId .")
             kafkaTemplate.send("cancel_order", orderId.toString())
             sendEmail(orderId.toString(), "The order has been successfully canceled!")
             println("OrderServiceAsync.cancelOrder: Order ${order.id} canceled!")
@@ -192,7 +203,7 @@ class OrderServiceAsyncImpl(
     override fun rollbackOrder(orderId: String): Response {
         val orderLoggerOptional = orderLoggerRepository.findById(ObjectId(orderId))
         //If the order is not logged, something went wrong. Rollback all
-        if(orderLoggerOptional.isEmpty){
+        if (orderLoggerOptional.isEmpty) {
             //set order as failed
             failOrder(orderId)
             return Response.invalidOrder()
@@ -200,7 +211,7 @@ class OrderServiceAsyncImpl(
 
         //If the order is logged, then it must be in one among delivery ok or transaction ok or pending
         //Then or products are not available or there aren't enough money
-        when(orderLoggerOptional.get().orderStatus){
+        when (orderLoggerOptional.get().orderStatus) {
             OrderLoggerStatus.DELIVERY_OK -> {
                 //unlog the order
                 orderLoggerRepository.deleteById(ObjectId(orderId))
@@ -228,7 +239,7 @@ class OrderServiceAsyncImpl(
         }
     }
 
-    override fun saveDeliveries(deliveryList: DeliveryListDTO, address: String): Unit{
+    override fun saveDeliveries(deliveryList: DeliveryListDTO, address: String): Unit {
         for (delivery in deliveryList.deliveryList!!) {
             //save each delivery in the database with a PENDING status
             deliveryRepository.save(
@@ -243,17 +254,21 @@ class OrderServiceAsyncImpl(
         }
     }
 
-    override fun failOrder(orderId: String): Unit{
+    override fun failOrder(orderId: String): Unit {
         val failedOrderOptional = orderRepository.findById(ObjectId(orderId))
-        if(failedOrderOptional.isPresent){
+        if (failedOrderOptional.isPresent) {
             failedOrderOptional.get().status = OrderStatus.FAILED
             orderRepository.save(failedOrderOptional.get())
         }
     }
 
-    override  fun sendEmail(orderId: String, message: String): Unit{
+    override fun sendEmail(orderId: String, message: String): Unit {
 
         val order = orderRepository.findById(ObjectId(orderId)).get()
-        kafkaTemplate.send("order_tracking", Gson().toJson(MailingInfoDTO(order.buyerId, order.status, order.id, message)).toString())
+        println("OrderService.sendEmail: Published on topic order_tracking with message.")
+        kafkaTemplate.send(
+            "order_tracking",
+            Gson().toJson(MailingInfoDTO(order.buyerId, order.status, order.id, message)).toString()
+        )
     }
 }
