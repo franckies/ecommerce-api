@@ -58,8 +58,11 @@ class DeliveryService(
 
                 //CASE 1: The order has been CANCELED -> CANCEL all the associated deliveries.
                 if (order.status == OrderStatus.CANCELED) {
-                    deliveries.all { it.get().status == DeliveryStatus.CANCELED }
-                    println("DeliveryService.startDeliveries: The order has been canceled or is in the status failed .")
+                    deliveries.forEach {
+                        it.get().status = DeliveryStatus.CANCELED
+                        deliveryRepository.save(it.get())
+                    }
+                    println("DeliveryService.startDeliveries: All deliveries associated to ${order.id} have been canceled .")
                     break
                 }
 
@@ -84,7 +87,7 @@ class DeliveryService(
                     if (order.status == OrderStatus.PAID) {
                         order.status = OrderStatus.DELIVERING
                         orderRepository.save(order)
-                        orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.DELIVERING, Date()))
+                        //orderLoggerRepository.save(OrderLogger(order.id, OrderLoggerStatus.DELIVERING, Date()))
                     }
                     println("DeliveryService.startDeliveries: The delivery ${randomDelivery.get().id} associated to the order ${order.id} has been shipped.")
                 }
