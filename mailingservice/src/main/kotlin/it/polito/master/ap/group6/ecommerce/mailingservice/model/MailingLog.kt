@@ -17,7 +17,10 @@ data class MailingLog (
     val orderID : String? = null,
     val type : MailType? = null,
     val status: OrderStatus? = null,
-    val timestamp: Date = Date()
+    val timestamp: Date = Date(),
+
+    val warehouse : String? = null,
+    val productID : String? = null
 
 )
 

@@ -12,8 +12,8 @@ import java.util.*
 @Repository
 interface LogRepository: MongoRepository<MailingLog, ObjectId> {
 
-    @Query("{ 'orderID' : ?0, 'type' : 'ALARMINFO' }")
-    fun getAlarmInfoMailingLogByOrderID(orderID: String) : Optional<MailingLog>
+    @Query("{ 'orderID' : ?0, 'type' : 'ALARMINFO' , 'productID': ?1, 'warehouse': ?2 }")
+    fun getAlarmInfoMailingLogByOrderID(orderID: String, productID: String, warehouse: String) : Optional<MailingLog>
 
     @Query("{'orderID' : ?0 , 'type' : 'ORDERINFO', 'status' : ?1 }")
     fun getOrderInfoMailingLogByOrderIDAndStatus(orderID: String, orderStatus: OrderStatus) : Optional<MailingLog>

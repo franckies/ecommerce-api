@@ -6,5 +6,7 @@ data class MailingInfoDTO (
     val userId: String? = null,
     val orderStatus: OrderStatus? = null,
     val orderId: String? = null,
-    val message: String? = null
+    val message: String? = null,
+    val productID : String? = null,
+    val warehouse: String? = null,
 )

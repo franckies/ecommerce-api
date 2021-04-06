@@ -97,7 +97,7 @@ class MailListener(
 
         val mailingLog : Optional<MailingLog>
         try {
-            mailingLog = logRepository.getAlarmInfoMailingLogByOrderID(mailingInfoDTO.orderId!!)
+            mailingLog = logRepository.getAlarmInfoMailingLogByOrderID(mailingInfoDTO.orderId!!, mailingInfoDTO.productID!!, mailingInfoDTO.warehouse!!)
             if (!mailingLog.isEmpty) {
                 println("ERROR: Alarm Level mail already sent for this orderID.")
                 return
@@ -146,7 +146,7 @@ class MailListener(
             }
             email.send()
             println("sendAlarmMail : mail sent.")
-            val mailingLog = MailingLog(orderID = mailingInfoDTO.orderId, type = MailType.ALARMINFO)
+            val mailingLog = MailingLog(orderID = mailingInfoDTO.orderId, type = MailType.ALARMINFO, productID = mailingInfoDTO.productID, warehouse = mailingInfoDTO.warehouse)
             logRepository.save(mailingLog)
             println("sendAlarmMail : log saved.")
         } catch (e: Exception) {

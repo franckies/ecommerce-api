@@ -161,15 +161,15 @@ class WarehouseServiceImpl(
                                 remainingQuantity -= requestedProduct.stock[i].availableQuantity!!
                                 requestedProduct.stock[i].availableQuantity = 0
                                 val message = "ALERT! Product ${requestedProduct.id} in warehouse ${requestedProduct.stock[i].warehouseName} : available quantities are 0."
-                                val mailInfo = MailingInfoDTO(orderId = orderID, message = message)
+                                val mailInfo = MailingInfoDTO(orderId = orderID, message = message, productID = requestedProduct.id.toString(), warehouse = requestedProduct.stock[i].warehouseName)
                                 kafkaAlarmLevel.send("alarm_level", jacksonObjectMapper().writeValueAsString(mailInfo))
                             } else {
                                 givenQuantity = remainingQuantity
                                 requestedProduct.stock[i].availableQuantity =
                                     requestedProduct.stock[i].availableQuantity!! - remainingQuantity
                                 if (requestedProduct.stock[i].availableQuantity!! <= requestedProduct.stock[i].alarmLevel!!) {
-                                    val message = "ALERT! Product ${requestedProduct.id} in warehouse ${requestedProduct.stock[i].warehouseName} : available products are ${requestedProduct.stock[i].availableQuantity!!}, alarm level is ${requestedProduct.stock[i].alarmLevel!!}"
-                                    val mailInfo = MailingInfoDTO(orderId = orderID, message = message)
+                                    val message = "ALERT! Product ${requestedProduct.id} in warehouse ${requestedProduct.stock[i].warehouseName} : available quantities are 0."
+                                    val mailInfo = MailingInfoDTO(orderId = orderID, message = message, productID = requestedProduct.id.toString(), warehouse = requestedProduct.stock[i].warehouseName)
                                     kafkaAlarmLevel.send("alarm_level", jacksonObjectMapper().writeValueAsString(mailInfo))
                                 }
                                 remainingQuantity = 0
@@ -235,7 +235,7 @@ class WarehouseServiceImpl(
                             stock.availableQuantity = stock.availableQuantity!! + purchase.quantity!!
                             if (stock.availableQuantity!! <= stock.alarmLevel!!) {
                                 val message = "ALERT! Product ${purchase.productID} in warehouse ${stock.warehouseName} : available products are ${stock.availableQuantity!!}, alarm level is ${stock.alarmLevel!!}"
-                                val mailInfo = MailingInfoDTO(orderId = orderID, message = message)
+                                val mailInfo = MailingInfoDTO(orderId = orderID, message = message, productID = purchase.productID, warehouse = stock.warehouseName)
                                 kafkaAlarmLevel.send("alarm_level", jacksonObjectMapper().writeValueAsString(mailInfo))
                             }
                             break
