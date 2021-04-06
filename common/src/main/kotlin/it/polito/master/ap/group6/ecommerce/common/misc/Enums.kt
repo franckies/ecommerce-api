@@ -25,3 +25,11 @@ enum class UserRole {
     ADMIN,
     //TODO: SERVICE role needed to inter service communication?
 }
+
+enum class MicroService {
+    CATALOG_SERVICE,
+    ORDER_SERVICE,
+    WALLET_SERVICE,
+    WAREHOUSE_SERVICE,
+    MAILING_SERVICE
+}
