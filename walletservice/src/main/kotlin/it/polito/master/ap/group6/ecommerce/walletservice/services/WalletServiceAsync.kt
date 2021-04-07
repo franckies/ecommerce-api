@@ -1,17 +1,14 @@
 package it.polito.master.ap.group6.ecommerce.walletservice.services
 
 import it.polito.master.ap.group6.ecommerce.common.dtos.PlacedOrderDTO
-import it.polito.master.ap.group6.ecommerce.common.dtos.RechargeDTO
-import it.polito.master.ap.group6.ecommerce.common.dtos.TransactionDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.TransactionStatus
 import it.polito.master.ap.group6.ecommerce.walletservice.miscellaneous.Response
 import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.Transaction
-import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.Wallet
-import it.polito.master.ap.group6.ecommerce.walletservice.models.dtos.toModel
 import it.polito.master.ap.group6.ecommerce.walletservice.repositories.TransactionRepository
 import it.polito.master.ap.group6.ecommerce.walletservice.repositories.WalletRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.util.*
 
 interface WalletServiceAsync {
@@ -25,6 +22,7 @@ interface WalletServiceAsync {
  * @author Andrea Biondo
  */
 @Service
+@Transactional
 class WalletServiceAsyncImpl(
         @Autowired private val walletRepository: WalletRepository,
         @Autowired private val transactionRepository: TransactionRepository

@@ -10,8 +10,7 @@ import it.polito.master.ap.group6.ecommerce.walletservice.repositories.Transacti
 import it.polito.master.ap.group6.ecommerce.walletservice.repositories.WalletRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import java.util.*
-
+import org.springframework.transaction.annotation.Transactional
 
 interface WalletService {
     fun createTransaction(orderID: String?): Response
@@ -29,6 +28,7 @@ interface WalletService {
  * @author Andrea Biondo
  */
 @Service
+@Transactional
 class WalletServiceImpl(
     @Autowired private val walletRepository: WalletRepository,
     @Autowired private val transactionRepository: TransactionRepository
