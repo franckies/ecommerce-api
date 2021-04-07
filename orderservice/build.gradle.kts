@@ -32,9 +32,9 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     implementation("org.apache.kafka:kafka-streams")
     implementation("org.springframework.kafka:spring-kafka")
-
     implementation(project(":common"))
 }
+
 
 tasks.withType<KotlinCompile> {
     kotlinOptions {

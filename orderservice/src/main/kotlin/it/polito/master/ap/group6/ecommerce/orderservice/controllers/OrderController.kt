@@ -30,7 +30,6 @@ class OrderController(
      * FAILED otherwise.
      */
     @PostMapping("/orders")
-    //@RolesAllowed("SERVICE") //TODO: check if it is like this
     fun createOrder(@RequestBody placedOrder: PlacedOrderDTO): ResponseEntity<OrderDTO?> {
         println("OrderController.createOrder: a new order from the user ${placedOrder.userID} is requested.")
         val createdOrder = orderServiceSync.createOrder(placedOrder)

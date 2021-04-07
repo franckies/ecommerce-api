@@ -1,7 +1,5 @@
 package it.polito.master.ap.group6.ecommerce.orderservice.miscellaneous
 
-import it.polito.master.ap.group6.ecommerce.common.dtos.OrderDTO
-
 class Response(
     var body: Any? = null,
     val responseId: ResponseType? = null,

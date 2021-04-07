@@ -158,7 +158,7 @@ class OrderServiceImpl(
         kafkaTemplateOrder.send(topic, serialized_placedorder)
 
         // provide requested outcome
-        return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = null)  // being async, nothing can go wrong and there is no immediate answer
+        return ExecutionResult(code = ExecutionResultType.CORRECT_EXECUTION, body = sagaId.toString())  // being async, nothing can go wrong and there is no immediate answer
     }
 
     override fun readOrderHistory(userID: ObjectId): ExecutionResult<ShownOrderListDTO> {
