@@ -38,11 +38,11 @@ class MailListener(
         try {
             mailingLog = logRepository.getOrderInfoMailingLogByOrderIDAndStatus(mailingInfoDTO.orderId!!, orderStatus = mailingInfoDTO.orderStatus!!)
             if (!mailingLog.isEmpty) {
-                println("ERROR: Order info mail already sent for this orderID.")
+                println("MailListener.sendInfoMail: Order info mail already sent for this orderID.")
                 return
             }
         } catch (e: Exception) {
-            println("sendInfoMail Exception: $e")
+            println("MailListener.sendInfoMail: ${e.cause}. Impossible to send the email.")
             return
         }
 
@@ -59,7 +59,7 @@ class MailListener(
         try {
             emailAddr.validate()
         } catch (e: AddressException) {
-            println("MailListener.sendMail: the email ${user.email} is invalid")
+            println("MailListener.sendInfoMail: the email ${user.email} is invalid")
             return
         }
         //send email
@@ -71,22 +71,21 @@ class MailListener(
             email.isSSLOnConnect = true
             email.setFrom("noreply_ecommerceapi@gmail.com")
             email.subject = "News about your order ${mailingInfoDTO.orderId}"
-            val textMessage: String =
-                """
-                    Hi ${user.name}! 
-                    ${mailingInfoDTO.message}
-                    Your order number ${mailingInfoDTO.orderId} is now in the status ${mailingInfoDTO.orderStatus}.
-                    For any question, do not hesitate to contact us at our call-center +39 3473102002.
-            """
+            val textMessage: String = """
+                Hi ${user.name}! 
+                ${mailingInfoDTO.message} 
+                Your order number ${mailingInfoDTO.orderId} is now in the status ${mailingInfoDTO.orderStatus}.
+                For any question, do not hesitate to contact us at our call-center +39 3473102002.
+                """.trimIndent()
             email.setMsg(textMessage)
             email.addTo(emailAddr.toString())
             email.send()
-            println("sendInfoMail : mail sent.")
+            println("MailListener.sendInfoMail: Mail sent.")
             val mailingLog = MailingLog(orderID = mailingInfoDTO.orderId, type = MailType.ORDERINFO, status = mailingInfoDTO.orderStatus)
             logRepository.save(mailingLog)
-            println("sendInfoMail : log saved.")
+            println("MailListener.sendInfoMail: Log saved.")
         } catch (e: Exception) {
-            println("MailListener.sendMail: {${e.cause}. Impossible to send the email.")
+            println("MailListener.sendInfoMail: ${e.cause}. Impossible to send the email.")
         }
     }
 
@@ -99,7 +98,7 @@ class MailListener(
         try {
             mailingLog = logRepository.getAlarmInfoMailingLogByOrderID(mailingInfoDTO.orderId!!, mailingInfoDTO.productID!!, mailingInfoDTO.warehouse!!)
             if (!mailingLog.isEmpty) {
-                println("ERROR: Alarm Level mail already sent for this orderID.")
+                println("MailListener.sendAlarmMail: Alarm Level mail already sent for this orderID.")
                 return
             }
         } catch (e: Exception) {
@@ -111,7 +110,7 @@ class MailListener(
 
         val optionalAdmins = mailingRepository.findUserDTOByRole("ADMIN")
         if (optionalAdmins.isEmpty) {
-            println("MailListener.sendMail: there aren't admins in the database.")
+            println("MailListener.sendAlarmMail: there aren't admins in the database.")
             return
         }
         val admins = optionalAdmins.get()
@@ -125,11 +124,10 @@ class MailListener(
             email.setFrom("noreply_ecommerceapi@gmail.com")
             email.subject = "Alarm level information"
             email.addTo("noreply_ecommerceapi@gmail.com")
-            val textMessage: String =
-                """
-                    Hi! 
-                    $alarmInfo
-                """
+            val textMessage: String = """
+                Hi! 
+                $alarmInfo
+                """.trimIndent()
             email.setMsg(textMessage)
             //check address validity and add to bcc
             val emailAddrList: List<InternetAddress> = admins.map { InternetAddress(it.email) }
@@ -145,12 +143,12 @@ class MailListener(
                 }
             }
             email.send()
-            println("sendAlarmMail : mail sent.")
+            println("MailListener.sendAlarmMail: Mail sent.")
             val mailingLog = MailingLog(orderID = mailingInfoDTO.orderId, type = MailType.ALARMINFO, productID = mailingInfoDTO.productID, warehouse = mailingInfoDTO.warehouse)
             logRepository.save(mailingLog)
-            println("sendAlarmMail : log saved.")
+            println("sMailListener.sendAlarmMail: Log saved.")
         } catch (e: Exception) {
-            println("MailListener.sendMail: {${e.cause}. Impossible to send the email.")
+            println("MailListener.sendAlarmMail:: ${e.cause}. Impossible to send the email.")
         }
     }
 }

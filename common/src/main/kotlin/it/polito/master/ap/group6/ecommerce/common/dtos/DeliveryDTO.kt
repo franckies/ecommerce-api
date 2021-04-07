@@ -13,5 +13,5 @@ data class DeliveryListDTO(
     val orderID : String? = null,
 //    val deliveryList: MutableList<DeliveryDTO>? = null
     val deliveryList: List<DeliveryDTO>? = null,
-    val deliveryAddress : String? = null
+    val deliveryAddress: String? = null
 )

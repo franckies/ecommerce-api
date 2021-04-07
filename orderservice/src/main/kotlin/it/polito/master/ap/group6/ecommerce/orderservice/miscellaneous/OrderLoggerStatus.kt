@@ -6,4 +6,5 @@ enum class OrderLoggerStatus {
     TRANSACTION_OK,
     PAID,
     DELIVERING,
+    FAILED
 }
