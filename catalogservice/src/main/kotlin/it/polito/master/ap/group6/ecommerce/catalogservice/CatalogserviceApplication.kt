@@ -23,6 +23,7 @@ import it.polito.master.ap.group6.ecommerce.catalogservice.services.UserService
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.WalletService
 import it.polito.master.ap.group6.ecommerce.common.dtos.RechargeDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.UserRole
+import org.bson.types.ObjectId
 
 
 //======================================================================================================================
@@ -55,7 +56,7 @@ class CatalogserviceApplication(
 		userList.forEach { user ->
 			if (user.role == UserRole.CUSTOMER){
 				walletService.createWallet(user)
-				walletService.issueRecharge(user.id!!, RechargeDTO(user.id, 10_000f, Date(), "initial recharge"))
+				walletService.issueRecharge(ObjectId(user.id!!), RechargeDTO(user.id, 10_000f, Date(), "initial recharge"))
 			}
 			mailingService.createUserMail(user)
 		}

@@ -60,10 +60,8 @@ class WarehouseServiceImpl(
         return productListDTO
     }
 
-//    override fun getProductsPerWarehouse(): ProductListAdminDTO {
     override fun getProductsPerWarehouse(): ProductListWarehouseDTO {
 
-        // Query to MongoDB
         val queriedProducts: List<Product> = warehouseRepository.getProductsPerWarehouse()
 
         val products = mutableListOf<ProductWarehouseDTO>()
@@ -121,7 +119,6 @@ class WarehouseServiceImpl(
         return result
     }
 
-//    override fun getDeliveries(orderDTO: OrderDTO) : DeliveryListDTO? {
     override fun getDeliveries(orderID : String, purchases : List<PurchaseDTO>?, deliveryAddress: String?) : DeliveryListDTO? {
 
         when (checkAvailability(purchases!!) ) {
@@ -203,8 +200,6 @@ class WarehouseServiceImpl(
             }
         }
     }
-
-
 
     override fun updateStocksAfterDeliveriesCancellation(orderID: String) : Boolean {
 
@@ -368,9 +363,8 @@ class WarehouseServiceImpl(
     }
 
     @KafkaListener(groupId = "warehouseservice", topics = ["rollback"])
-//    fun listener_rollback(orderID: String) {
     fun listener_rollback(rollbackDTOString : String) {
-        val rollbackDTO = jacksonObjectMapper().readValue<RollbackDTO>(rollbackDTOString!!)
+        val rollbackDTO = jacksonObjectMapper().readValue<RollbackDTO>(rollbackDTOString)
         println("Rollback Request received from ${rollbackDTO.sender}.")
         if (updateStocksAfterDeliveriesCancellation(rollbackDTO.sagaID!!)) {
             println("Rollback correctly done.")
