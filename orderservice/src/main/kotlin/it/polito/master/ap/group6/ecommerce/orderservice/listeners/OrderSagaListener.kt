@@ -38,9 +38,6 @@ class OrderSagaListener(
             ResponseType.INVALID_ORDER -> {
                 println("OrderSagaListener.createOrder: skipping duplicated saga ID ${placedOrder.sagaID.toString()}")
             }
-//            ResponseType.ORDER_CONFIRMED -> {
-//                println("${Date()} OrderSaga.createOrder: The order ${placedOrder.sagaID} has been confirmed and is in PAID status.")
-//            }
             ResponseType.WAITING -> {
                 println("OrderSaga.createOrder: Waiting for other MS to respond for order ${placedOrder.sagaID}.")
             }
@@ -57,9 +54,6 @@ class OrderSagaListener(
             ResponseType.INVALID_ORDER -> {
                 println("OrderSagaListener.productsChecked: skipping duplicated saga ID ${deliveryList.orderID}")
             }
-//            ResponseType.ORDER_CONFIRMED -> {
-//                println("${Date()} OrderSaga.productsChecked: The order ${deliveryList.orderID} has been confirmed and is in PAID status.")
-//            }
             ResponseType.WAITING -> {
                 println("OrderSaga.productsChecked: Waiting for other MS to respond for order ${deliveryList.orderID}.")
             }
@@ -75,9 +69,6 @@ class OrderSagaListener(
             ResponseType.INVALID_ORDER -> {
                 println("OrderSagaListener.walletChecked: skipping duplicated saga ID ${orderId}")
             }
-//            ResponseType.ORDER_CONFIRMED -> {
-//                println("${Date()} OrderSaga.walletChecked: The order ${orderId} has been confirmed and is in PAID status.")
-//            }
             ResponseType.WAITING -> {
                 println("OrderSaga.walletChecked: Waiting for other MS to respond for order ${orderId}.")
             }

@@ -27,7 +27,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.util.*
 
 interface OrderServiceAsync {
     fun createOrder(placedOrder: PlacedOrderDTO): Response
@@ -59,21 +58,21 @@ class OrderServiceAsyncImpl(
 
     override fun createOrder(placedOrder: PlacedOrderDTO): Response {
         //STEP 1: check if pending is already logged
-        val orderLoggerOptional =
-            orderLoggerRepository.findByOrderIDAndOrderStatus(placedOrder.sagaID.toString(), OrderLoggerStatus.PENDING)
+        val orderLoggerOptional = orderLoggerRepository.findByOrderIDAndOrderStatus(
+            placedOrder.sagaID.toString(),
+            OrderLoggerStatus.PENDING
+        )
         if (orderLoggerOptional.isPresent) {
             println("OrderServiceAsync.createOrder: skipped duplicate order ${placedOrder.sagaID.toString()}")
             return Response.invalidOrder()
         }
-
-        val orderLoggerOptionalFailed =
-            orderLoggerRepository.findByOrderIDAndOrderStatus(placedOrder.sagaID.toString(), OrderLoggerStatus.FAILED)
-        if (orderLoggerOptionalFailed.isPresent) {
+        //check if the order is already failed (it happens when product ok or wallet ok comes first and then the order is rollbacked)
+        if (checkRollbackCondition(placedOrder.sagaID.toString())) {
             println("OrderServiceAsync.createOrder: skipped duplicate order ${placedOrder.sagaID.toString()}")
             return Response.invalidOrder()
         }
 
-        //STEP 2: log the created order
+        //STEP 2: log the created order and save it into the DB with pending status
         val order: Order = placedOrder.toModel()
         order.status = OrderStatus.PENDING
         orderRepository.save(order)
@@ -123,7 +122,10 @@ class OrderServiceAsyncImpl(
         val creationTimer = GlobalScope.launch {
             delay(10_000L)
             val orderLoggerOptional =
-                orderLoggerRepository.findByOrderIDAndOrderStatus(deliveryList.orderID.toString(), OrderLoggerStatus.PENDING)
+                orderLoggerRepository.findByOrderIDAndOrderStatus(
+                    deliveryList.orderID.toString(),
+                    OrderLoggerStatus.PENDING
+                )
             if (orderLoggerOptional.isEmpty) {
                 println("OrderServiceAsync.productsChecked.creationTimer: Timer expired. The order is failed and a rollback is requested.")
                 kafkaTemplate.send(
@@ -186,16 +188,18 @@ class OrderServiceAsyncImpl(
     }
 
     override fun cancelOrder(orderId: ObjectId): Response {
-        //update log for the order
+        //check if is already failed or canceled
         if (checkRollbackCondition(orderId.toString())) {
             return Response.invalidOrder()
         }
 
+        //check if it is an existing order
         val orderOptional = orderRepository.findById(orderId)
         if (orderOptional.isEmpty) {
             println("OrderServiceAsync.cancelOrder: The order $orderId cannot be found.")
             return Response.orderCannotBeFound()
         }
+        //check if can be canceled (i.e. is in PAID status)
         val order = orderOptional.get()
         if (order.status == OrderStatus.PAID) {
             //update the order
@@ -217,10 +221,16 @@ class OrderServiceAsyncImpl(
         return res
     }
 
+    /**
+     * Performs the rollback of an order updating both the logger and the db.
+     * @return Response.invalidOrder() if the order cannot be rollbacked (it is a duplicate), Response.orderRollback() otherwise.
+     */
     override fun rollbackOrder(orderId: String): Response {
+        //skip duplicate rollback requests
         if (checkRollbackCondition(orderId)) {
             return Response.invalidOrder()
         }
+        //fail the order in the logger and in the db
         orderLoggerRepository.save(OrderLogger(orderId, OrderLoggerStatus.FAILED))
         val orderOptional = orderRepository.findById(ObjectId(orderId))
         if (orderOptional.isEmpty) {
@@ -233,6 +243,9 @@ class OrderServiceAsyncImpl(
         return Response.orderRollback()
     }
 
+    /**
+     * Publish on topic order_tracking to inform MailingService to send an email to a customer.
+     */
     override fun sendEmail(orderId: String, message: String) {
         val orderOptional = orderRepository.findById(ObjectId(orderId))
         if (orderOptional.isEmpty) {
@@ -246,6 +259,9 @@ class OrderServiceAsyncImpl(
         )
     }
 
+    /**
+     * @return true if the order can be set as PAID, false otherwise.
+     */
     fun checkConditions(orderID: String): Boolean {
         val orderLoggerListOptional = orderLoggerRepository.findByOrderID(orderID)
         if (orderLoggerListOptional.isEmpty) {
@@ -261,6 +277,9 @@ class OrderServiceAsyncImpl(
         return false
     }
 
+    /**
+     * @return true if the order has already been rollbacked, false otherwise.
+     */
     fun checkRollbackCondition(orderID: String): Boolean {
         val orderLoggerListOptional = orderLoggerRepository.findByOrderID(orderID)
         if (orderLoggerListOptional.isEmpty) {
