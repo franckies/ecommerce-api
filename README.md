@@ -123,6 +123,12 @@ For clarity, the two most common exception that are always catched will not be r
 |`GET /order/delete/{orderID}/sync`| - | OrderDTO | 200_OK, 404_NOT_FOUND |Catalog requests to cancel the order `orderID` (updating its STATUS, if it has not been shipped yet) (synchronous manner)|
 |`GET /order/delete/{orderID}/async`| - | OrderDTO | 200_OK, 404_NOT_FOUND |Catalog requests to cancel the order `orderID` (updating its STATUS, if it has not been shipped yet) (asynchronous manner)|
 
+**Mailing service endpoints**
+
+|EP|Request body|Response body|Response code| Description|
+|---|---|---|---|---|
+|POST /mailing/create| UserDTO | - | 200_OK | Catalog insert sends the list of users to the MailingService|
+
 ### Asynchronous Communication
 
 The following image reports how the asynchronous communication among the microservices take places. The blue and red

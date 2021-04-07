@@ -101,19 +101,19 @@ class OrderController(
             return ResponseEntity(null, HttpStatus.BAD_REQUEST)
         }
 
-        // invoke the business logic
+        // invoke the business logic. empty_placeholder contains as body the sagaId.
         val empty_placeholder = orderService.createOrderAsync(user_id, placedOrderDTO)
 
         // check the result
         return when (empty_placeholder.code) {
-            ExecutionResultType.CORRECT_EXECUTION -> ResponseEntity(empty_placeholder.body, HttpStatus.OK)
+            ExecutionResultType.CORRECT_EXECUTION -> ResponseEntity(empty_placeholder.body as String, HttpStatus.OK)
             ExecutionResultType.GENERIC_ERROR -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
             ExecutionResultType.HTTP_ERROR -> ResponseEntity(null, empty_placeholder.http_code!!)
             ExecutionResultType.EXTERNAL_HOST_NOT_REACHABLE -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
             ExecutionResultType.SOMEONE_ELSE_PROBLEM -> ResponseEntity(null, HttpStatus.INTERNAL_SERVER_ERROR)
             ExecutionResultType.PAYMENT_REFUSED -> ResponseEntity(null, HttpStatus.PAYMENT_REQUIRED)
             ExecutionResultType.WITHDRAWAL_REFUSED -> ResponseEntity(null, HttpStatus.CONFLICT)
-            else -> ResponseEntity(empty_placeholder.body, HttpStatus.INTERNAL_SERVER_ERROR)
+            else -> ResponseEntity(empty_placeholder.body as String, HttpStatus.INTERNAL_SERVER_ERROR)
         }
     }
 
