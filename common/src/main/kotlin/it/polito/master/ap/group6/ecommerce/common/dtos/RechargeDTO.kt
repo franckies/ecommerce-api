@@ -8,5 +8,4 @@ data class RechargeDTO(
     val amount: Float? = null,
     val timestamp: Date? = null,
     val causal: String? = null,
-    //TODO: UserDTO who charged is needed?
 )

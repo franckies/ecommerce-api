@@ -127,7 +127,7 @@ For clarity, the two most common exception that are always catched will not be r
 
 |EP|Request body|Response body|Response code| Description|
 |---|---|---|---|---|
-|POST /mailing/create| UserDTO | - | 200_OK | Catalog insert sends the list of users to the MailingService|
+|POST /mailing/create| UserDTO | - | 200_OK | Catalog sends the list of users to the MailingService|
 
 ### Asynchronous Communication
 
@@ -142,23 +142,32 @@ server.
 ### DTOs definition
 
 ```
-WalletDTO(UserDTO, total, List<Transaction>)
-ProductDTO(name, description, category, picture, currentPrice)
+WalletDTO(userID, total, List<TransactionDTO>)
+ProductDTO(productID, name, description, category, picture, currentPrice)
 ProductAdminDTO(ProductDTO, WarehouseDTO, alarm level, warehouseQuantity)
-ProductListDTO(Dict<ProductDTO, totalQuantity>)
+ProductListDTO(List<ProductQuantityDTO>)
+ProductQuantityDTO(ProductDTO, quantity)
 ProductListAdminDTO(List<ProductAdminDTO>)
 
-UserDTO(userID, name, surname, email, role)
-PurchaseDTO(ProductDTO, quantity, sellingPrice)
-TransactionDTO(UserDTO, amount, time, causale, status)
-RechargeDTO(UserDTO, amount, time, causale)
+UserDTO(userID, name, surname, username, address, email, role)
+PurchaseDTO(productID, quantity, sellingPrice)
+TransactionDTO(orderID, userID, amount, time, status)
+RechargeDTO(userID, amount, time, causal)
 WarehouseDTO(name, address)
+WarehouseStockDTO(name, address, quantity, alarmLevel)
+ProductWarehouseDTO(id, name, category, currentPrice, description, picture, stock)
+ProductListWarehouseDTO(List<ProductWarehouseDTO>)
 
 OrderDTO(OrderID, List<PurchaseDTO>, status)
-DeliveryDTO(WarehouseDTO, List<PurchaseDTO>)
-DeliveryListDTO(OrderDTO, List<DeliveryDTO>)
+DeliveryDTO(WarehouseID, List<PurchaseDTO>)
+DeliveryListDTO(OrderID, deliveryAddress, List<DeliveryDTO>)
+ShownOrderDTO(List<OrderDTO>)
+ShownOrderListDTO(List<List<OrderDTO>>)
 
-PlacedOrderDTO(UserDTO, List<PurchaseDTO>, deliveryAddress)
+PlacedOrderDTO(orderID, userID, List<PurchaseDTO>, deliveryAddress)
 ShownOrderDTO(List<OrderDTO>)
 ShownOrderListDTO(List<List<OrderDTO>)
+
+MailinginfoDTO(userID, orderStatus, orderID, message, productID, warehouse)
+RollbackDTO(orderID, senderMS)
 ```

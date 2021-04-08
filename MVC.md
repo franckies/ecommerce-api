@@ -7,7 +7,7 @@ All the controllers should be put in a single class file.
 Contains .html files.
 
 ### Models
-Contains a class for each model to be used. (labeled with __@Document). __dtos__ contains a data class for each dto.
+Contains a class for each model to be used. (labeled with __@Document__). __dtos__ contains a data class for each dto.
 
 ### Config
 Contains the configuration files for security and db (if needed).
