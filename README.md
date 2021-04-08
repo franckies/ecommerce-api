@@ -142,7 +142,7 @@ server.
 ### DTOs definition
 
 ```
-WalletDTO(UserDTO, total, List<Transaction>, ??time??)
+WalletDTO(UserDTO, total, List<Transaction>)
 ProductDTO(name, description, category, picture, currentPrice)
 ProductAdminDTO(ProductDTO, WarehouseDTO, alarm level, warehouseQuantity)
 ProductListDTO(Dict<ProductDTO, totalQuantity>)
@@ -151,7 +151,7 @@ ProductListAdminDTO(List<ProductAdminDTO>)
 UserDTO(userID, name, surname, email, role)
 PurchaseDTO(ProductDTO, quantity, sellingPrice)
 TransactionDTO(UserDTO, amount, time, causale, status)
-RechargeDTO(UserDTO, amount, time, causale,??UserDTO(who charges)??)
+RechargeDTO(UserDTO, amount, time, causale)
 WarehouseDTO(name, address)
 
 OrderDTO(OrderID, List<PurchaseDTO>, status)
