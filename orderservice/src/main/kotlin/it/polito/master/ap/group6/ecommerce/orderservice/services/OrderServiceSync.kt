@@ -25,6 +25,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.bson.types.ObjectId
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -59,7 +60,9 @@ class OrderServiceSyncImpl(
     @Autowired private val orderRepository: OrderRepository,
     @Autowired private val deliveryRepository: DeliveryRepository,
     @Autowired private val deliveryService: DeliveryService,
-    @Autowired private val orderLoggerRepository: OrderLoggerRepository
+    @Autowired private val orderLoggerRepository: OrderLoggerRepository,
+    @Value("\${application.wallet_service}") val wallet: String,
+    @Value("\${application.warehouse_service}") val warehouse: String
 ) : OrderServiceSync {
 
     /**
@@ -240,7 +243,6 @@ class OrderServiceSyncImpl(
      */
     override fun checkWallet(orderID: ObjectId): Response {
         val order: Order = orderRepository.findById(orderID).get()
-        val wallet = "localhost:8083"
         val restTemplate = RestTemplate()
         val transactionId: String?
         val transaction =
@@ -290,7 +292,6 @@ class OrderServiceSyncImpl(
      */
     override fun submitOrder(orderID: ObjectId): Response {
         val order: Order = orderRepository.findById(orderID).get()
-        val warehouse = "localhost:8084"
 
         val deliveryList: DeliveryListDTO?
         try {
@@ -351,7 +352,6 @@ class OrderServiceSyncImpl(
      */
     override fun completeTransaction(transactionId: String, orderID: ObjectId): Response {
         val order: Order = orderRepository.findById(orderID).get()
-        val wallet = "localhost:8083"
         val orderConfirmationID: String?
 
         try {
@@ -395,7 +395,6 @@ class OrderServiceSyncImpl(
     }
 
     override fun undoDeliveries(orderID: ObjectId): Response {
-        val warehouse = "localhost:8084"
         val order = orderRepository.findById(orderID).get()
         var i: Int = 0
         //try to contact warehouse until the product is restored
@@ -436,7 +435,6 @@ class OrderServiceSyncImpl(
     override fun undoTransaction(orderID: ObjectId): Response {
         val order = orderRepository.findById(orderID).get()
 
-        val wallet = "localhost:8083"
         var res: Response
         var i: Int = 0
         //Try to contact the wallet until the transaction is restored

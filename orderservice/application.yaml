@@ -1,0 +1,22 @@
+#Application port
+server:
+  port: 8082
+#DB and kafka configuration
+spring:
+  data:
+    mongodb:
+      database: test_orderservice
+      host: mongo
+      port: 27017
+  kafka:
+    bootstrap-servers: broker:9092
+    consumer:
+      auto-offset-reset: earliest
+      enable-auto-commit: true
+      auto-commit-interval: 1000
+#Services configuration
+application:
+  wallet_service: walletservice:8083
+  warehouse_service: warehouseservice:8084
+  catalogue_service: catalogservice:8081
+

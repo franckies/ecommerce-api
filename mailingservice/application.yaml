@@ -1,0 +1,15 @@
+#Application port
+server:
+  port: 8085
+#DB and kafka configuration
+spring:
+  data:
+    mongodb:
+      database: test_orderservice
+      host: mongo
+      port: 27017
+  kafka:
+    bootstrap-servers: broker:9092
+    consumer:
+      auto-offset-reset: earliest
+
