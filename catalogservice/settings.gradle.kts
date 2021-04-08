@@ -1,3 +1,3 @@
 rootProject.name = "catalogservice"
-bootJar.enabled = false
+bootJar.enabled = true
 jar.enabled = true

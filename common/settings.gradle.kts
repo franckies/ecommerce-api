@@ -1,3 +1,3 @@
 rootProject.name = "common"
-bootJar.enabled = false
+bootJar.enabled = true
 jar.enabled = true

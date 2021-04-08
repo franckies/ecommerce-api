@@ -1,3 +1,3 @@
 rootProject.name = "walletservice"
-bootJar.enabled = false
+bootJar.enabled = true
 jar.enabled = true
