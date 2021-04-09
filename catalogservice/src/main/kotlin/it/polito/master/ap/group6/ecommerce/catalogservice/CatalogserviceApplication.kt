@@ -14,6 +14,8 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2
 import org.springframework.context.support.beans
 import java.util.*
 import org.springframework.kafka.core.KafkaTemplate
+import org.bson.types.ObjectId
+import java.lang.Thread.sleep
 
 //------- internal dependencies ------------------------------------------------
 import it.polito.master.ap.group6.ecommerce.catalogservice.models.User
@@ -23,7 +25,8 @@ import it.polito.master.ap.group6.ecommerce.catalogservice.services.UserService
 import it.polito.master.ap.group6.ecommerce.catalogservice.services.WalletService
 import it.polito.master.ap.group6.ecommerce.common.dtos.RechargeDTO
 import it.polito.master.ap.group6.ecommerce.common.misc.UserRole
-import org.bson.types.ObjectId
+import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResult
+import it.polito.master.ap.group6.ecommerce.catalogservice.miscellaneous.ExecutionResultType
 
 
 //======================================================================================================================
@@ -52,13 +55,38 @@ class CatalogserviceApplication(
 			userService.create("Govanni", "Malnati", "giova", "963", "franckiesuper@gmail.com", role = UserRole.ADMIN)
 		)
 
-		// inform the WalletService
+		// initialize the WalletService and MailingService
 		userList.forEach { user ->
 			if (user.role == UserRole.CUSTOMER){
-				walletService.createWallet(user)
-				walletService.issueRecharge(ObjectId(user.id!!), RechargeDTO(user.id, 10_000f, Date(), "initial recharge"))
+				// try to create a wallet (at most 10 times)
+				var res1 = ExecutionResult<String>(code = ExecutionResultType.GENERIC_ERROR)
+				var cnt1: Int = 0
+				while (res1.code != ExecutionResultType.CORRECT_EXECUTION && cnt1 < 10) {
+					res1 = walletService.createWallet(user)
+					cnt1++
+					if (res1.code != ExecutionResultType.CORRECT_EXECUTION)
+						sleep(1_000L)
+				}
+				// try to put some initial money (at most 10 times)
+				var res2 = ExecutionResult<String>(code = ExecutionResultType.GENERIC_ERROR)
+				var cnt2: Int = 0
+				while (res2.code != ExecutionResultType.CORRECT_EXECUTION && cnt2 < 10) {
+					res2 = walletService.issueRecharge(ObjectId(user.id!!), RechargeDTO(user.id, 10_000f, Date(), "initial recharge"))
+					cnt2++
+					if (res2.code != ExecutionResultType.CORRECT_EXECUTION)
+						sleep(1_000L)
+				}
 			}
-			mailingService.createUserMail(user)
+			// try to create a wallet (at most 10 times)
+			var res3 = ExecutionResult<String>(code = ExecutionResultType.GENERIC_ERROR)
+			var cnt3: Int = 0
+			while (res3.code != ExecutionResultType.CORRECT_EXECUTION && cnt3 < 10) {
+				res3 = mailingService.createUserMail(user)
+				cnt3++
+				if (res3.code != ExecutionResultType.CORRECT_EXECUTION)
+					sleep(1_000L)
+			}
+
 		}
 	}
 }

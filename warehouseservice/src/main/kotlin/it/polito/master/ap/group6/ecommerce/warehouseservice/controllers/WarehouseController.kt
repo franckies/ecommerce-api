@@ -72,8 +72,8 @@ class WarehouseController(val warehouseService: WarehouseService) {
         }
     }
 
-    @PostMapping("/warehouse/products/update")
-    fun updateProductInWarehouse(@RequestBody productAdminDTO: ProductAdminDTO, productID: String?) : ResponseEntity<ProductAdminDTO>? {
+    @PostMapping("/warehouse/products/update/{productID}")
+    fun updateProductInWarehouse(@RequestBody productAdminDTO: ProductAdminDTO, @PathVariable("productID") productID: String?) : ResponseEntity<ProductAdminDTO>? {
         println("WarehouseService.updateProductInWarehouse() invoked.")
         if (productID==null)
             return ResponseEntity(null, HttpStatus.BAD_REQUEST)

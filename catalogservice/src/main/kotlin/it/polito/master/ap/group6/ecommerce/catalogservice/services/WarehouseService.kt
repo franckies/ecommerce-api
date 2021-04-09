@@ -162,7 +162,7 @@ class WarehouseServiceImpl(
 
     override fun modifyProduct(productID: ObjectId, modified_product: ProductAdminDTO): ExecutionResult<ProductDTO> {
         // submit remotely to the Warehouse microservice
-        val url: String = "http://${warehouseservice_url}/warehouse/products/${productID}"
+        val url: String = "http://${warehouseservice_url}/warehouse/products/update/${productID}"
         var updated_product: ProductDTO? = null
         try {
             print("Performing POST on '$url'... ")
