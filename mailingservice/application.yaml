@@ -5,7 +5,7 @@ server:
 spring:
   data:
     mongodb:
-      database: test_orderservice
+      database: mailing_database
       host: mongo
       port: 27017
   kafka:

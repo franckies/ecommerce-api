@@ -12,6 +12,9 @@ services:
     depends_on:
       - mongo
       - broker
+      - zookeeper
+      - mailingservice
+      - walletservice
   mailingservice:
     image: mailingservice:latest
     restart: always
@@ -23,6 +26,7 @@ services:
     depends_on:
       - mongo
       - broker
+      - zookeeper
   orderservice:
     image: orderservice:latest
     restart: always
@@ -34,6 +38,7 @@ services:
     depends_on:
       - mongo
       - broker
+      - zookeeper
   walletservice:
     image: walletservice:latest
     restart: always
@@ -45,6 +50,7 @@ services:
     depends_on:
       - mongo
       - broker
+      - zookeeper
   warehouseservice:
     image: warehouseservice:latest
     restart: always
@@ -56,6 +62,7 @@ services:
     depends_on:
       - mongo
       - broker
+      - zookeeper
   mongo:
     image: mongo:4
     restart: always
@@ -73,6 +80,8 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - ecommerce
   broker:
     image: confluentinc/cp-server:6.1.1
     hostname: broker
@@ -101,5 +110,7 @@ services:
       CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
       CONFLUENT_METRICS_ENABLE: 'true'
       CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
+    networks:
+      - ecommerce
 networks:
   ecommerce:
