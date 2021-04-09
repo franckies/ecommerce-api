@@ -171,3 +171,14 @@ ShownOrderListDTO(List<List<OrderDTO>)
 MailinginfoDTO(userID, orderStatus, orderID, message, productID, warehouse)
 RollbackDTO(orderID, senderMS)
 ```
+
+## How to deploy
+
+A docker image for all the involved microservices has been created and pushed to docker hub. The project can be deployed
+on your machine simply launching a docker compose providing
+the [docker compose](docker-compose.yaml) file.
+
+```
+docker-compose -f docker-compose.yaml up -d
+```
+Then, to test the APIs connect to ```localhost:8081/swagger-ui.html```.
