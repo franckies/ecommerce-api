@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
   catalogservice:
-    image: catalogservice:latest
+    image: fsemeraro96/catalogservice:latest
     restart: always
     container_name: catalogservice
     ports:
@@ -16,7 +16,7 @@ services:
       - mailingservice
       - walletservice
   mailingservice:
-    image: mailingservice:latest
+    image: fsemeraro96/mailingservice:latest
     restart: always
     container_name: mailingservice
     ports:
@@ -28,7 +28,7 @@ services:
       - broker
       - zookeeper
   orderservice:
-    image: orderservice:latest
+    image: fsemeraro96/orderservice:latest
     restart: always
     container_name: orderservice
     ports:
@@ -40,7 +40,7 @@ services:
       - broker
       - zookeeper
   walletservice:
-    image: walletservice:latest
+    image: fsemeraro96/walletservice:latest
     restart: always
     container_name: walletservice
     ports:
@@ -52,7 +52,7 @@ services:
       - broker
       - zookeeper
   warehouseservice:
-    image: warehouseservice:latest
+    image: fsemeraro96/warehouseservice:latest
     restart: always
     container_name: warehouseservice
     ports:
