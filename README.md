@@ -182,3 +182,8 @@ ShownOrderListDTO(List<List<OrderDTO>)
 MailinginfoDTO(userID, orderStatus, orderID, message, productID, warehouse)
 RollbackDTO(orderID, senderMS)
 ```
+## Authors
+Biondo Andrea
+Chiapello Nicolò
+Martone Raffaele
+Semeraro Francesco
